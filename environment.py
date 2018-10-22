@@ -34,6 +34,7 @@ if __name__ == "__main__":
 
     environment = Cube()
     print(environment)
-    print(str('hello'))
+    print("World!")
+
 
 
