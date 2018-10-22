@@ -19,17 +19,22 @@ class Cube:
         :param cube_size: Cube size is 2x2 by default
         """
         self.face = {'U': 0, 'D': 1, 'F': 2, 'B': 3, 'R': 4, 'L': 5}
+        facedict = {"U": 0, "D": 1, "F": 2, "B": 3, "R": 4, "L": 5}
+        dictface = dict([(v, k) for k, v in facedict.items()])
         self.cube_size = np.zeros((6, cube_size, cube_size))
 
     def __repr__(self) -> str:
 
         return str(self.cube_size)
 
-    def print_this_shit(self):
-        print(self.cube_size)
 
 
 if __name__ == "__main__":
     env = Cube()
-    print(env)
+
+    facedict = {"U": 0, "D": 1, "F": 2, "B": 3, "R": 4, "L": 5}
+    dictface = dict([(v, k) for k, v in facedict.items()])
+
+    print(facedict)
+    print(dictface)
 
