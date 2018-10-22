@@ -23,25 +23,13 @@ class Cube:
         self.cube_size = cube_size
 
         self.cube = np.empty(self.cube_size, dtype=str)
-        colors = ['w', 'b', 'r', 'g', 'o', 'y']
-        for k, color in enumerate(liste):
+        colors = ['w', 'b', 'o', 'r', 'g', 'y']
+        for k, color in enumerate(colors):
             self.cube[k] = color
 
-        self.up = np.zeros(cube_size, dtype=str)
-        self.up[:] = 'w'
-        self.down = np.zeros(cube_size, dtype=str)
-        self.down[:] = 'b'
-        self.left = np.zeros(cube_size, dtype=str)
-        self.left[:] = 'o'
-        self.right = np.zeros(cube_size, dtype=str)
-        self.right[:] = 'r'
-        self.front = np.zeros(cube_size, dtype=str)
-        self.front[:] = 'g'
-        self.back = np.zeros(cube_size, dtype=str)
-        self.back[:] = 'y'
-        self.face = {'U': cube[0], 'D': self.down,
-                     'F': self.front, 'B': self.back,
-                     'R': self.right, 'L': self.left}
+        self.face = {'U': self.cube[0], 'D': self.cube[1],
+                     'F': self.cube[4], 'B': self.cube[5],
+                     'R': self.cube[3], 'L': self.cube[2]}
 
     def move(self, face, dir):
         """
@@ -53,27 +41,27 @@ class Cube:
         """
         f = self.face[face]
 
-        if f == 'F':
-            np.rot90(self.face[face], dir)
+        if f == 0:
+            np.rot90(self.cube[0], dir)
 
 
 
     def __repr__(self) -> str:
-        return str(self.face)
+        return str(self.cube)
 
 
 
 if __name__ == "__main__":
 
-    # environment = Cube()
-    # print(environment)
-    # environment.move('F', 'c')
-    cube = np.empty((6, 2, 2), dtype=str)
-    liste = ['w', 'o', 'r', 'g', 'b', 'y']
-    for i, farge in enumerate(liste):
-        cube[i] = farge
-
-    print(cube)
+    environment = Cube()
+    print(environment)
+    environment.move(0, 1)
+    # cube = np.empty((6, 2, 2), dtype=str)
+    # liste = ['w', 'o', 'r', 'g', 'b', 'y']
+    # for i, farge in enumerate(liste):
+    #     cube[i] = farge
+    #
+    # print(cube)
 
 
     # rotate = np.array(([1, 2, 3], [8, 0, 4], [7, 6, 5]))
