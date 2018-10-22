@@ -24,7 +24,8 @@ class Cube:
 
     def __repr__(self) -> str:
 
-        return str(self.cube_size)
+        return str(self.cube_size), self.face
+
 
 
 if __name__ == "__main__":
