@@ -24,7 +24,7 @@ class Cube:
 
     def __repr__(self) -> str:
 
-        return str(self.cube_size), self.face
+        return str(self.cube_size)
 
 
 
@@ -32,4 +32,5 @@ if __name__ == "__main__":
     environment = Cube()
     print(environment)
     print("World!")
+
 
