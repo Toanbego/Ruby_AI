@@ -9,13 +9,9 @@ class Solver:
         self.state = state
 
     def action(self):
-        
-
-
-
-
+        pass
 
 
 if __name__ == "__main__":
 
-    Solver
+    pass
