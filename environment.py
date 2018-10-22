@@ -26,18 +26,14 @@ class Cube:
 
     def __repr__(self) -> str:
 
-        return str(self.cube_size), self.face
+        return str(self.cube_size)
 
 
 
 if __name__ == "__main__":
 
-    env = Cube()
-
-    facedict = {"U": 0, "D": 1, "F": 2, "B": 3, "R": 4, "L": 5}
-    dictface = dict([(v, k) for k, v in facedict.items()])
-
-    print(facedict)
-    print(dictface)
+    environment = Cube()
+    print(environment)
+    print(str('hello'))
 
 
