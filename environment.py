@@ -4,6 +4,7 @@ This is the environment script for the agent.
 
 import numpy as np
 
+
 class Cube:
     """
     Class for representing the Rubik's Cube
@@ -25,11 +26,12 @@ class Cube:
 
     def __repr__(self) -> str:
 
-        return str(self.cube_size)
+        return str(self.cube_size), self.face
 
 
 
 if __name__ == "__main__":
+
     env = Cube()
 
     facedict = {"U": 0, "D": 1, "F": 2, "B": 3, "R": 4, "L": 5}
@@ -37,4 +39,5 @@ if __name__ == "__main__":
 
     print(facedict)
     print(dictface)
+
 
