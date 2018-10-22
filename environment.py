@@ -4,6 +4,7 @@ This is the environment script for the agent.
 
 import numpy as np
 
+
 class Cube:
     """
     Class for representing the Rubik's Cube
