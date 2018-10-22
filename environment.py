@@ -31,4 +31,5 @@ class Cube:
 if __name__ == "__main__":
     environment = Cube()
     print(environment)
+    print("World!")
 
