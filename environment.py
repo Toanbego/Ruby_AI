@@ -26,11 +26,8 @@ class Cube:
 
         return str(self.cube_size)
 
-    def print_this_shit(self):
-        print(self.cube_size)
-
 
 if __name__ == "__main__":
-    env = Cube()
-    print(env)
+    environment = Cube()
+    print(environment)
 
