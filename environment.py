@@ -104,8 +104,6 @@ class Cube:
                 self.face['F'][0, 1], self.face['F'][1, 1] = cube_temp[0][0, 1], cube_temp[0][1, 1]
                 self.face['U'][1, 1], self.face['U'][0, 1] = cube_temp[5][0, 0], cube_temp[5][1, 0]
 
-        # U=0, D=1, L=2, R=3, F=4, B=5
-
         elif face == 'L':
             self.face['L'] = np.rot90(self.face['L'], dir)
             if dir == -1:
@@ -122,20 +120,36 @@ class Cube:
 
         elif face == 'U':
             self.face['U'] = np.rot90(self.face['U'], dir)
-            self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[5][0, 1], cube_temp[5][0, 0]
-            self.face['F'][1, 1], self.face['F'][1, 0] = cube_temp[3][0, 0], cube_temp[3][0, 1]
-            self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
-            self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+            if dir == -1:
+                self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[5][0, 0], cube_temp[5][0, 1]
+                self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[3][0, 0], cube_temp[3][0, 1]
+                self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
+                self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+            else:
+                self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
+                self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+                self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[5][0, 0], cube_temp[5][0, 1]
+                self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[3][0, 0], cube_temp[3][0, 1]
 
         elif face == 'D':
             self.face['D'] = np.rot90(self.face['D'], dir)
-            self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[4][1, 0], cube_temp[4][1, 1]
-            self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[2][1, 0], cube_temp[2][1, 1]
-            self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[5][1, 1], cube_temp[5][1, 0]
-            self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[3][0, 1], cube_temp[3][1, 1]
+            if dir == -1:
+                self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[4][1, 0], cube_temp[4][1, 1]
+                self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[2][1, 0], cube_temp[2][1, 1]
+                self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[5][1, 1], cube_temp[5][1, 0]
+                self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[3][0, 1], cube_temp[3][1, 1]
+            else:
+                self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[5][1, 0], cube_temp[5][1, 1]
+                self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[3][1, 0], cube_temp[3][1, 1]
+                self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[4][1, 1], cube_temp[4][1, 0]
+                self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[2][0, 1], cube_temp[2][1, 1]
 
         # U=0, D=1, L=2, R=3, F=4, B=5
         # Update cube array
+        for i, face in enumerate(self.face):
+            self.cube[i] = self.face[face]
+        
+
 
 
 
@@ -161,7 +175,7 @@ if __name__ == "__main__":
 
     cube = Cube()
     # print(environment)
-    cube.move('R', 1)
+    cube.move('D', 1)
 
 
 
