@@ -46,7 +46,7 @@ class Cube:
                      'L': self.cube[2], 'R': self.cube[3],
                      'F': self.cube[4], 'B': self.cube[5]}
 
-    def move(self, face, dir):
+    def rotate_cube(self, face, dir):
         """
         Move the faces of the cube in either clock-wise or counter-clock-wise
         :param face: The face to rotate
@@ -148,16 +148,6 @@ class Cube:
         # Update cube array
         for i, face in enumerate(self.face):
             self.cube[i] = self.face[face]
-        
-
-
-
-
-
-        print(cube)
-
-
-
 
 
     def __repr__(self) -> str:
@@ -165,6 +155,8 @@ class Cube:
         for faces in self.face:
             rep_string += f'\n===={faces}====\n{self.face[faces]}'
         return rep_string
+
+
 
 
 def column(matrix, i):
@@ -175,7 +167,7 @@ if __name__ == "__main__":
 
     cube = Cube()
     # print(environment)
-    cube.move('D', 1)
+    cube.rotate_cube('D', 1)
 
 
 
