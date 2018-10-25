@@ -32,7 +32,7 @@ class Cube:
 
         # print(self.cube[:][:])
 
-        colors = ['o', 'w', 'g', 'b', 'r', 'y']
+        colors = ['g', 'y', 'o', 'w', 'b', 'r']
         for k, color in enumerate(colors):
             self.cube[k] = color
 
@@ -65,7 +65,7 @@ class Cube:
 
         """
         # f = self.face[face]
-        cube_temp = copy.deepcopy(self.cube)
+        cube_temp = copy.copy(self.cube)
         # print(cube_temp)
         # print(self.face)
         # U=0, D=1, L=2, R=3, F=4, B=5
@@ -172,18 +172,22 @@ def column(matrix, i):
 if __name__ == "__main__":
     cube = Cube()
     # print(environment)
-    # cube.rotate_cube('L', -1)
-    cube.rotate_cube('T', -1)
+
     cube.rotate_cube('F', -1)
+    # cube.rotate_cube('L', -1)
+    # cube.rotate_cube('U', -1)
+    # cube.rotate_cube('F', -1)
     # cube.rotate_cube('D', -1)
     # cube.rotate_cube('R', -1)
-    cube.rotate_cube('B', -1)
+    # cube.rotate_cube('B', -1)
 
-    cube.rotate_cube('B', 1)
+    # cube.rotate_cube('B', 1)
     # cube.rotate_cube('R', 1)
     # cube.rotate_cube('D', 1)
-    cube.rotate_cube('F', 1)
-    cube.rotate_cube('T', 1)
+    # cube.rotate_cube('F', 1)
+    # cube.rotate_cube('U', 1)
     # cube.rotate_cube('L', 1)
+
+
 
     print(cube)
