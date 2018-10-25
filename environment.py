@@ -4,6 +4,7 @@ This is the environment script for the agent.
 
 import numpy as np
 import copy
+from color_cube import make_image
 
 
 class Cube:
@@ -29,22 +30,27 @@ class Cube:
         self.cube_size = cube_size
         self.cube = np.zeros(self.cube_size, dtype=str)
 
-        # This is the classical colors
-        # colors = ['w', 'b', 'o', 'r', 'g', 'y']
-        # for k, color in enumerate(colors):
-        #     self.cube[k] = color
 
-        colors = ['w', 'y', 'b', 'g', 'r', 'o']
+
+        colors = ['g', 'y', 'o', 'w', 'b', 'r']
         for k, color in enumerate(colors):
             self.cube[k] = color
 
-        # This is for numbering the array instead of with str
-        # self.cube = np.array([[[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]]])
+        self.face = {'L': self.cube[0], 'U': self.cube[1],
+                     'F': self.cube[2], 'D': self.cube[3],
+                     'R': self.cube[4], 'B': self.cube[5]}
 
-        # Create dictionary from array.
-        self.face = {'U': self.cube[0], 'D': self.cube[1],
-                     'L': self.cube[2], 'R': self.cube[3],
-                     'F': self.cube[4], 'B': self.cube[5]}
+        # colors = ['w', 'y', 'b', 'g', 'r', 'o']
+        # for k, color in enumerate(colors):
+        #     self.cube[k] = color
+        #
+        # # self.cube = np.array([[[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]]])
+        #
+        #
+        # self.face = {'U': self.cube[0], 'D': self.cube[1],
+        #              'L': self.cube[2], 'R': self.cube[3],
+        #              'F': self.cube[4], 'B': self.cube[5]}
+
 
     def rotate_cube(self, face, dir):
         """
@@ -55,92 +61,99 @@ class Cube:
         :return:
         """
 
+
         cube_temp = self.cube.copy()
 
-        # U=0, D=1, L=2, R=3, F=4, B=5
 
+        # U=0, D=1, L=2, R=3, F=4, B=5
+        # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
+        make_image(self.cube, 'before_move')
         if face == 'F':
             self.face['F'] = np.rot90(self.face['F'], dir)
             if dir == -1:
-                self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[0][1, 0], cube_temp[0][0, 1]
-                self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[3][0, 0], cube_temp[3][1, 0]
-                self.face['L'][0, 1], self.face['L'][1, 1] = cube_temp[1][0, 0], cube_temp[1][0, 1]
-                self.face['U'][1, 0], self.face['U'][1, 1] = cube_temp[2][0, 1], cube_temp[2][1, 1]
+                self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[1][1, 0], cube_temp[1][1, 1]
+                self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[4][0, 0], cube_temp[4][1, 0]
+                self.face['L'][0, 1], self.face['L'][1, 1] = cube_temp[3][0, 0], cube_temp[3][0, 1]
+                self.face['U'][1, 0], self.face['U'][1, 1] = cube_temp[0][0, 1], cube_temp[0][1, 1]
             else:
-                self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[1][0, 0], cube_temp[1][0, 1]
-                self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[2][0, 1], cube_temp[2][1, 1]
-                self.face['L'][0, 1], self.face['L'][1, 1] = cube_temp[0][1, 0], cube_temp[0][1, 1]
-                self.face['U'][1, 0], self.face['U'][1, 1] = cube_temp[3][0, 0], cube_temp[2][1, 0]
+                self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[3][0, 0], cube_temp[3][0, 1]
+                self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[0][0, 1], cube_temp[0][1, 1]
+                self.face['L'][0, 1], self.face['L'][1, 1] = cube_temp[1][1, 0], cube_temp[1][1, 1]
+                self.face['U'][1, 0], self.face['U'][1, 1] = cube_temp[4][0, 0], cube_temp[4][1, 0]
 
         elif face == 'B':
             self.face['B'] = np.rot90(self.face['B'], dir)
-            if dir == -1:
-                self.face['L'][0, 0], self.face['L'][1, 0] = cube_temp[0][0, 1], cube_temp[0][0, 0]
-                self.face['D'][1, 1], self.face['D'][1, 0] = cube_temp[2][0, 0], cube_temp[2][1, 0]
-                self.face['R'][0, 1], self.face['R'][1, 1] = cube_temp[1][0, 1], cube_temp[1][1, 1]
-                self.face['U'][0, 1], self.face['U'][0, 0] = cube_temp[3][0, 1], cube_temp[3][1, 1]
+            if dir == -1:  # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
+                self.face['L'][0, 0], self.face['L'][1, 0] = cube_temp[1][0, 1], cube_temp[1][0, 0]
+                self.face['D'][1, 1], self.face['D'][1, 0] = cube_temp[0][0, 0], cube_temp[0][1, 0]
+                self.face['R'][0, 1], self.face['R'][1, 1] = cube_temp[3][1, 0], cube_temp[3][1, 1]
+                self.face['U'][0, 1], self.face['U'][0, 0] = cube_temp[4][0, 1], cube_temp[4][1, 1]
             else:
-                self.face['L'][0, 0], self.face['L'][1, 0] = cube_temp[1][1, 1], cube_temp[1][1, 0]
-                self.face['D'][1, 1], self.face['D'][1, 0] = cube_temp[3][0, 1], cube_temp[3][1, 1]
-                self.face['R'][0, 1], self.face['R'][1, 1] = cube_temp[0][1, 1], cube_temp[0][0, 1]
-                self.face['U'][0, 1], self.face['U'][0, 0] = cube_temp[2][0, 0], cube_temp[2][1, 0]
+                self.face['L'][0, 0], self.face['L'][1, 0] = cube_temp[3][1, 1], cube_temp[3][1, 0]
+                self.face['D'][1, 1], self.face['D'][1, 0] = cube_temp[4][0, 1], cube_temp[4][1, 1]
+                self.face['R'][0, 1], self.face['R'][1, 1] = cube_temp[1][0, 1], cube_temp[1][0, 1]
+                self.face['U'][0, 1], self.face['U'][0, 0] = cube_temp[0][0, 0], cube_temp[0][1, 0]
 
         elif face == 'R':
             self.face['R'] = np.rot90(self.face['R'], dir)
             if dir == -1:
-                self.face['B'][0, 0], self.face['B'][1, 0] = cube_temp[0][1, 1], cube_temp[0][0, 1]
-                self.face['D'][0, 1], self.face['D'][1, 1] = cube_temp[5][1, 0], cube_temp[5][0, 0]
-                self.face['F'][0, 1], self.face['F'][1, 1] = cube_temp[1][0, 1], cube_temp[1][1, 1]
-                self.face['U'][1, 1], self.face['U'][0, 1] = cube_temp[4][1, 1], cube_temp[4][0, 1]
-            else:
                 self.face['B'][0, 0], self.face['B'][1, 0] = cube_temp[1][1, 1], cube_temp[1][0, 1]
-                self.face['D'][0, 1], self.face['D'][1, 1] = cube_temp[4][0, 1], cube_temp[4][1, 1]
-                self.face['F'][0, 1], self.face['F'][1, 1] = cube_temp[0][0, 1], cube_temp[0][1, 1]
+                self.face['D'][0, 1], self.face['D'][1, 1] = cube_temp[5][1, 0], cube_temp[5][0, 0]
+                self.face['F'][0, 1], self.face['F'][1, 1] = cube_temp[3][0, 1], cube_temp[3][1, 1]
+                self.face['U'][1, 1], self.face['U'][0, 1] = cube_temp[2][1, 1], cube_temp[2][0, 1]
+            else:
+                self.face['B'][0, 0], self.face['B'][1, 0] = cube_temp[3][1, 1], cube_temp[3][0, 1]
+                self.face['D'][0, 1], self.face['D'][1, 1] = cube_temp[2][0, 1], cube_temp[2][1, 1]
+                self.face['F'][0, 1], self.face['F'][1, 1] = cube_temp[1][0, 1], cube_temp[1][1, 1]
                 self.face['U'][1, 1], self.face['U'][0, 1] = cube_temp[5][0, 0], cube_temp[5][1, 0]
 
         elif face == 'L':
             self.face['L'] = np.rot90(self.face['L'], dir)
             if dir == -1:
-                self.face['F'][0, 0], self.face['F'][1, 0] = cube_temp[0][0, 0], cube_temp[0][1, 0]
-                self.face['D'][1, 0], self.face['D'][0, 0] = cube_temp[4][0, 0], cube_temp[4][1, 0]
-                self.face['B'][0, 1], self.face['B'][1, 1] = cube_temp[1][1, 0], cube_temp[1][0, 0]
+                self.face['F'][0, 0], self.face['F'][1, 0] = cube_temp[1][0, 0], cube_temp[1][1, 0]
+                self.face['D'][1, 0], self.face['D'][0, 0] = cube_temp[2][0, 0], cube_temp[2][1, 0]
+                self.face['B'][0, 1], self.face['B'][1, 1] = cube_temp[3][1, 0], cube_temp[3][0, 0]
                 self.face['U'][0, 0], self.face['U'][1, 0] = cube_temp[5][0, 1], cube_temp[5][1, 1]
             else:
-                self.face['F'][0, 0], self.face['F'][1, 0] = cube_temp[1][0, 0], cube_temp[1][1, 0]
+                self.face['F'][0, 0], self.face['F'][1, 0] = cube_temp[3][0, 0], cube_temp[3][1, 0]
                 self.face['D'][1, 0], self.face['D'][0, 0] = cube_temp[5][0, 1], cube_temp[5][1, 1]
-                self.face['B'][0, 1], self.face['B'][1, 1] = cube_temp[0][1, 0], cube_temp[0][0, 0]
-                self.face['U'][0, 0], self.face['U'][1, 0] = cube_temp[4][0, 0], cube_temp[4][1, 0]
+                self.face['B'][0, 1], self.face['B'][1, 1] = cube_temp[1][1, 0], cube_temp[1][0, 0]
+                self.face['U'][0, 0], self.face['U'][1, 0] = cube_temp[2][0, 0], cube_temp[2][1, 0]
 
         elif face == 'U':
             self.face['U'] = np.rot90(self.face['U'], dir)
             if dir == -1:
                 self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[5][0, 0], cube_temp[5][0, 1]
-                self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[3][0, 0], cube_temp[3][0, 1]
-                self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
-                self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+                self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
+                self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+                self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[0][0, 0], cube_temp[0][0, 1]
             else:
-                self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
-                self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+                self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
+                self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[0][0, 0], cube_temp[0][0, 1]
                 self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[5][0, 0], cube_temp[5][0, 1]
-                self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[3][0, 0], cube_temp[3][0, 1]
+                self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[4][0, 0], cube_temp[4][0, 1]
 
         elif face == 'D':
             self.face['D'] = np.rot90(self.face['D'], dir)
             if dir == -1:
-                self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[4][1, 0], cube_temp[4][1, 1]
-                self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[2][1, 0], cube_temp[2][1, 1]
+                self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[2][1, 0], cube_temp[2][1, 1]
+                self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[0][1, 0], cube_temp[0][1, 1]
                 self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[5][1, 1], cube_temp[5][1, 0]
-                self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[3][0, 1], cube_temp[3][1, 1]
+                self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[4][1, 0], cube_temp[4][1, 1]
             else:
                 self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[5][1, 0], cube_temp[5][1, 1]
-                self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[3][1, 0], cube_temp[3][1, 1]
-                self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[4][1, 1], cube_temp[4][1, 0]
-                self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[2][0, 1], cube_temp[2][1, 1]
+                self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[4][1, 0], cube_temp[4][1, 1]
+                self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[2][1, 1], cube_temp[2][1, 0]
+                self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[0][1, 0], cube_temp[0][1, 1]
 
         # U=0, D=1, L=2, R=3, F=4, B=5
+
         # Update cube array
         for i, face in enumerate(self.face):
             self.cube[i] = self.face[face]
+
+
+        make_image(self.cube, 'after_move')
 
     def __repr__(self) -> str:
         rep_string = ''
@@ -154,12 +167,24 @@ def column(matrix, i):
 
 
 if __name__ == "__main__":
-
     cube = Cube()
     # print(environment)
-    cube.rotate_cube('D', 1)
+
+    cube.rotate_cube('F', -1)
+    # cube.rotate_cube('L', -1)
+    # cube.rotate_cube('U', -1)
+    # cube.rotate_cube('F', -1)
+    # cube.rotate_cube('D', -1)
+    # cube.rotate_cube('R', -1)
+    # cube.rotate_cube('B', -1)
+
+    # cube.rotate_cube('B', 1)
+    # cube.rotate_cube('R', 1)
+    # cube.rotate_cube('D', 1)
+    # cube.rotate_cube('F', 1)
+    # cube.rotate_cube('U', 1)
+    # cube.rotate_cube('L', 1)
 
 
 
-
-
+    print(cube)

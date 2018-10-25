@@ -20,7 +20,11 @@ def color(sticker):
     return rgb
 
 
-def make_image(sides):
+def make_image(sides, filename):
+
+    popper = [['x', 'x'], ['x', 'x']]
+    sides = np.insert(sides, [0, 1, 4, 5, 5, 6], popper, axis=0)
+    # Size of the image
     x_axis, y_axis = 8, 6
     # Initializing the image with RGB values and 8x6 pixels
     img = Image.new('RGB', (x_axis, y_axis))
@@ -35,15 +39,14 @@ def make_image(sides):
         for v in range(y_axis):
             drawing[u, v] = color(sides[element[el]][v % 2][u % 2])
             el += 1
-    img.save('rubix_cube.png', 'PNG')
+    # img.show()
+    img.save("{}.PNG".format(filename), 'PNG')
 
 
 def main():
     cube = np.array(
-        [[['x', 'x'], ['x', 'x']], [['o', 'o'], ['o', 'o']], [['x', 'x'], ['x', 'x']],
-         [['w', 'w'], ['w', 'w']], [['g', 'g'], ['g', 'g']], [['b', 'b'], ['b', 'b']],
-         [['x', 'x'], ['x', 'x']], [['r', 'r'], ['r', 'r']], [['x', 'x'], ['x', 'x']],
-         [['x', 'x'], ['x', 'x']], [['y', 'y'], ['y', 'y']], [['x', 'x'], ['x', 'x']]])
+        [[['o', 'o'], ['o', 'o']], [['w', 'w'], ['w', 'w']], [['g', 'g'], ['g', 'g']],
+         [['b', 'b'], ['b', 'b']], [['r', 'r'], ['r', 'r']], [['y', 'y'], ['y', 'y']]])
     make_image(cube)
 
 
