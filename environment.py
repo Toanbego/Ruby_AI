@@ -29,8 +29,7 @@ class Cube:
         self.cube_size = cube_size
         self.cube = np.zeros(self.cube_size, dtype=str)
 
-        # print(self.cube[:][:])
-
+        # This is the classical colors
         # colors = ['w', 'b', 'o', 'r', 'g', 'y']
         # for k, color in enumerate(colors):
         #     self.cube[k] = color
@@ -39,9 +38,10 @@ class Cube:
         for k, color in enumerate(colors):
             self.cube[k] = color
 
+        # This is for numbering the array instead of with str
         # self.cube = np.array([[[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]], [[0,1],[2,3]]])
 
-
+        # Create dictionary from array.
         self.face = {'U': self.cube[0], 'D': self.cube[1],
                      'L': self.cube[2], 'R': self.cube[3],
                      'F': self.cube[4], 'B': self.cube[5]}
@@ -49,20 +49,14 @@ class Cube:
     def rotate_cube(self, face, dir):
         """
         Move the faces of the cube in either clock-wise or counter-clock-wise
+        Movement is hardcoded to work on 2x2x6 cubes
         :param face: The face to rotate
         :param dir: The direction. -1 is clockwise, 1 is counter clockwise
         :return:
-
-
-        F = front[0,1,2,3] = front[2,0,3,1], right[0,2] = up[2,3], down[0,1] = right[0,2]
-        left[1,3] = down[0,1]
-
-
         """
-        # f = self.face[face]
+
         cube_temp = self.cube.copy()
-        # print(cube_temp)
-        # print(self.face)
+
         # U=0, D=1, L=2, R=3, F=4, B=5
 
         if face == 'F':
@@ -117,7 +111,6 @@ class Cube:
                 self.face['B'][0, 1], self.face['B'][1, 1] = cube_temp[0][1, 0], cube_temp[0][0, 0]
                 self.face['U'][0, 0], self.face['U'][1, 0] = cube_temp[4][0, 0], cube_temp[4][1, 0]
 
-
         elif face == 'U':
             self.face['U'] = np.rot90(self.face['U'], dir)
             if dir == -1:
@@ -149,14 +142,11 @@ class Cube:
         for i, face in enumerate(self.face):
             self.cube[i] = self.face[face]
 
-
     def __repr__(self) -> str:
         rep_string = ''
         for faces in self.face:
             rep_string += f'\n===={faces}====\n{self.face[faces]}'
         return rep_string
-
-
 
 
 def column(matrix, i):

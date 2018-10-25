@@ -5,45 +5,59 @@ import environment
 
 
 class Solver:
+    """
+    This is an agent class with methods that can be used to interact with
+    the Rubik's cube environment in environment.py
+    """
 
     def __init__(self, state):
+        """
+        Initialize attributes for class
+        :param state: Should be before any movement is done
+        """
 
-        # self.end_state = environment.cube
-        self.state = state
-        self.reward = self.reward()
+        self.end_state = state
+        # self.reward = self.reward(self.end_state)
 
     def action(self, face, dir):
-        cube.rotate_cube(face=face, dir=dir)
+        """
+        Perform an action on the rubik's cube environment according to a given
+        policy
+        :param face:
+        :param dir:
+        :return:
+        """
+        rubiks_cube.rotate_cube(face=face, dir=dir)
 
-    def reward(self, state, action, next_state='noe'):
+    def reward(self, state=None):
         """
         Should calculate reward based on some of this information.
-        Perhaps the number of moves it is away from wind state
+        Perhaps the number of moves it is away from win state
         :param state:
         :param action:
         :param next_state:
         :return:
         """
-        if state == self.end_state:
+        print(state)
+        if state.all() == self.end_state.all():
             return 1
         else:
             return -1
 
 
-
 if __name__ == "__main__":
 
-    cube = environment.Cube()
+    rubiks_cube = environment.Cube()
 
-    agent = Solver(cube)
+    # Testing some methods
+    agent = Solver(rubiks_cube.cube)
     agent.action('F', 1)
-    print(cube)
     agent.action('F', -1)
-
     # Calculate reward
-    reward = agent.reward(cube, 'F')
+    reward = agent.reward(rubiks_cube.cube)
+    print(reward)
 
-    print(cube)
+
 
 
 
