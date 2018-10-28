@@ -21,7 +21,12 @@ def color(sticker):
 
 
 def make_image(sides, filename):
-
+    """
+    Renders an image of the current state of the rubiks cube
+    :param sides: The sides of the cube
+    :param filename: The filename
+    :return:
+    """
     popper = [['x', 'x'], ['x', 'x']]
     sides = np.insert(sides, [0, 1, 4, 5, 5, 6], popper, axis=0)
     # Size of the image

@@ -21,6 +21,8 @@ class Network:
     We also need to see how the autodidactic algorithm works into this, since the number of states
     is about 3.6 million, it might use a really long time to train on this.
     """
+    def __init__(self):
+        self.training_samples = self.scramble_cube()
 
     def model_reinforcement(self):
         pass
@@ -39,5 +41,33 @@ class Network:
 
     def remember(self):
         pass
+
+
+    def scramble_cube(self,state, k):
+        """
+        Takes in a cube array, and scramble it k times.
+        :param state
+        :param k:
+        :return:
+        """
+
+def main():
+
+
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

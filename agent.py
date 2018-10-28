@@ -29,6 +29,12 @@ class Solver:
         """
         rubiks_cube.rotate_cube(face=face, dir=dir)
 
+
+    def autodidactic(self, state):
+        pass
+
+
+
     def reward(self, state=None):
         """
         Should calculate reward based on some of this information.
@@ -45,17 +51,48 @@ class Solver:
             return -1
 
 
+def generate_training_samples(data_set_size, scrambles, rubiks_cube):
+    """
+    Generate the training set for supervised learning
+    :param data_set_size: size of data set
+    :param scrambles: How many times to maximum scramble a cube
+    :param rubiks_cube: Cube object
+    :return:
+    """
+    # TODO This should probably be done beforehand and written to a datafile
+    # TODO It might also be an idea to not make the dataset randomly scrambled, but deterministic
+    data_set = []   # Will consist of the cube array
+
+    # Generate randomly scrambled cubes
+    for sample in range(data_set_size):
+
+        # Reset the cube each time
+        rubiks_cube.cube, rubiks_cube.face = rubiks_cube.reset_cube()
+
+        # Append the scrambled cube, with the actions it took to get there
+        data_set.append(rubiks_cube.scramble_cube(10))
+
+    return data_set
+
+
 if __name__ == "__main__":
 
+    # Set up environment
     rubiks_cube = environment.Cube()
 
-    # Testing some methods
+    # Generate Training set
+    data = generate_training_samples(100, 1, rubiks_cube)
+
+    # Initialize agent
     agent = Solver(rubiks_cube.cube)
-    agent.action('F', 1)
-    agent.action('F', -1)
-    # Calculate reward
-    reward = agent.reward(rubiks_cube.cube)
-    print(reward)
+
+    # Testing some methods
+
+    # agent.action('F', 1)
+    # agent.action('F', -1)
+    # # Calculate reward
+    # reward = agent.reward(rubiks_cube.cube)
+    # print(reward)
 
 
 

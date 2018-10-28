@@ -25,4 +25,8 @@ $RECYCLE.BIN/
 **__pycache__
 **.pytest_cache
 **.DS_Store
+**.vscode
+after_move.PNG
+before_move.PNG
+
 
