@@ -70,7 +70,7 @@ def generate_training_samples(data_set_size, scrambles, rubiks_cube):
         rubiks_cube.cube, rubiks_cube.face = rubiks_cube.reset_cube()
 
         # Append the scrambled cube, with the actions it took to get there
-        data_set.append(rubiks_cube.scramble_cube(10))
+        data_set.append(rubiks_cube.scramble_cube(scrambles))
 
     return data_set
 
