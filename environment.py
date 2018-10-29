@@ -178,6 +178,7 @@ class Cube:
         action = np.random.choice(self.action_space, size=k)
 
         # Loop through actions and move the cube
+
         for a in action:
             store_action.append(a)
             self.rotate_cube(a)
@@ -201,9 +202,11 @@ if __name__ == "__main__":
     # cube.scramble_cube(10)
     cube.cube, cube.face = cube.reset_cube()
 
-    # cube.rotate_cube('U', -1)
-    cube.rotate_cube("F", True)
-    print(cube.face)
+
+
+    cube.rotate_cube('U', True)
+    # cube.rotate_cube("F'", True)
+
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
     # cube.rotate_cube('D', -1)
