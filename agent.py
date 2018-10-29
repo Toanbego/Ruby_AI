@@ -2,6 +2,8 @@
 This is the agent.
 """
 import environment
+import numpy as np
+import time
 
 
 class Solver:
@@ -17,7 +19,7 @@ class Solver:
         """
 
         self.end_state = state
-        # self.reward = self.reward(self.end_state)
+
 
     def action(self, face, dir):
         """
@@ -44,8 +46,8 @@ class Solver:
         :param next_state:
         :return:
         """
-        print(state)
-        if state.all() == self.end_state.all():
+
+        if (len(set(element)) == 1 for element in state):
             return 1
         else:
             return -1
@@ -80,11 +82,14 @@ if __name__ == "__main__":
     # Set up environment
     rubiks_cube = environment.Cube()
 
-    # Generate Training set
-    data = generate_training_samples(100, 1, rubiks_cube)
 
+    # Generate Training set
+    # data = generate_training_samples(100, 1, rubiks_cube)
     # Initialize agent
     agent = Solver(rubiks_cube.cube)
+
+
+    reward = agent.reward(state=rubiks_cube.cube)
 
     # Testing some methods
 
