@@ -26,9 +26,6 @@ class Cube:
         self.cube, self.face = self.reset_cube()
         self.action_space = ["L", "L'", "U", "U'", "F", "F'",
                              "D", "D'", "R", "R'", "B", "B'"]
-        # self.face = {'L': self.cube[0], 'U': self.cube[1],
-        #              'F': self.cube[2], 'D': self.cube[3],
-        #              'R': self.cube[4], 'B': self.cube[5]}
 
     def rotate_cube(self, face, render_image=True):
         """
@@ -182,6 +179,7 @@ class Cube:
         action = np.random.choice(self.action_space, size=k)
 
         # Loop through actions and move the cube
+
         for a in action:
             store_action.append(a)
             cube = self.rotate_cube(a)
