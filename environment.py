@@ -3,7 +3,6 @@ This is the environment script for the agent.
 """
 
 import numpy as np
-import copy
 from color_cube import make_image
 
 
@@ -26,9 +25,6 @@ class Cube:
         self.cube, self.face = self.reset_cube()
         self.action_space = ["L", "L'", "U", "U'", "F", "F'",
                              "D", "D'", "R", "R'", "B", "B'"]
-        # self.face = {'L': self.cube[0], 'U': self.cube[1],
-        #              'F': self.cube[2], 'D': self.cube[3],
-        #              'R': self.cube[4], 'B': self.cube[5]}
 
     def rotate_cube(self, face, render_image=True):
         """
@@ -176,17 +172,18 @@ class Cube:
         :param k:
         :return:
         """
-        store_action = []   # List to store the actions
+        store_action = []  # List to store the actions
 
         # Randomly choose actions from the action space
         action = np.random.choice(self.action_space, size=k)
 
         # Loop through actions and move the cube
+
         for a in action:
             store_action.append(a)
-            cube = self.rotate_cube(a)
+            self.rotate_cube(a)
 
-        return [cube, store_action]
+        return [self.cube, store_action]
 
     def __repr__(self) -> str:
         """
@@ -199,18 +196,14 @@ class Cube:
         return rep_string
 
 
-
 if __name__ == "__main__":
     cube = Cube()
     data_set = []
     # cube.scramble_cube(10)
     cube.cube, cube.face = cube.reset_cube()
 
-
-
-    # cube.rotate_cube('U', True)
-    # cube.rotate_cube("F", False)
-    # print(cube.face)
+    cube.rotate_cube('U', True)
+    # cube.rotate_cube("F'", True)
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
     # cube.rotate_cube('D', -1)
@@ -222,5 +215,3 @@ if __name__ == "__main__":
     # cube.rotate_cube('D', 1)
     # cube.rotate_cube('F', 1)
     # cube.rotate_cube('U', 1)
-
-
