@@ -204,9 +204,9 @@ if __name__ == "__main__":
 
 
 
-    cube.rotate_cube('U', True)
-    # cube.rotate_cube("F'", True)
-
+    # cube.rotate_cube('U', True)
+    cube.rotate_cube("F'", True)
+    #
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
     # cube.rotate_cube('D', -1)
