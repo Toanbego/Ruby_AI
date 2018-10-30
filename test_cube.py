@@ -203,7 +203,6 @@ class TestEnv(unittest.TestCase):
                   np.array([['w', 'w'], ['w', 'w']], dtype='<U1'),
                   np.array([['b', 'b'], ['b', 'b']], dtype='<U1'),
                   np.array([['r', 'r'], ['r', 'r']], dtype='<U1')]
-
         np.testing.assert_array_equal(rotation, result)
 
     def test_rotate_back(self):

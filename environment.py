@@ -4,6 +4,9 @@ This is the environment script for the agent.
 
 import numpy as np
 from color_cube import make_image
+import configparser
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 
 class Cube:
@@ -202,7 +205,7 @@ if __name__ == "__main__":
     # cube.scramble_cube(10)
     cube.cube, cube.face = cube.reset_cube()
 
-    # cube.rotate_cube('U', True)
+    cube.rotate_cube('U', True)
     # cube.rotate_cube("F'", True)
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
