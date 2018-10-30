@@ -22,7 +22,7 @@ def color(sticker):
 
 def make_image(sides, filename):
     """
-    Renders an image of the current state of the rubiks cube
+    Renders an image of the current state of the rubik's cube
     :param sides: The sides of the cube
     :param filename: The filename
     :return:
