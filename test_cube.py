@@ -29,7 +29,7 @@ class TestEnv(unittest.TestCase):
 
         """
         # Testing 'Front' rotation counter-clockwise
-        side = "F'"
+        side = 'Fr'
         rotation = list(self.cube.rotate_cube(side))
         result = [np.array([['g', 'g'], ['g', 'g']], dtype='<U1'),
                   np.array([['y', 'y'], ['y', 'y']], dtype='<U1'),
@@ -63,7 +63,7 @@ class TestEnv(unittest.TestCase):
 
         """
         # Testing 'Left' rotation counter-clockwise
-        side = "L'"
+        side = 'Lr'
         rotation = list(self.cube.rotate_cube(side))
         result = [np.array([['g', 'g'], ['g', 'g']], dtype='<U1'),
                   np.array([['y', 'y'], ['y', 'y']], dtype='<U1'),
@@ -97,7 +97,7 @@ class TestEnv(unittest.TestCase):
 
         """
         # Testing 'up' rotation counter-clockwise
-        side = "U'"
+        side = 'Ur'
         rotation = list(self.cube.rotate_cube(side))
         result = [np.array([['g', 'g'], ['g', 'g']], dtype='<U1'),
                   np.array([['y', 'y'], ['y', 'y']], dtype='<U1'),
@@ -131,7 +131,7 @@ class TestEnv(unittest.TestCase):
 
         """
         # Testing 'down' rotation counter-clockwise
-        side = "D'"
+        side = 'Dr'
         rotation = list(self.cube.rotate_cube(side))
         result = [np.array([['g', 'g'], ['g', 'g']], dtype='<U1'),
                   np.array([['y', 'y'], ['y', 'y']], dtype='<U1'),
@@ -165,7 +165,7 @@ class TestEnv(unittest.TestCase):
 
         """
         # Testing 'right' rotation counter-clockwise
-        side = "R'"
+        side = 'Rr'
         rotation = list(self.cube.rotate_cube(side))
         result = [np.array([['g', 'g'], ['g', 'g']], dtype='<U1'),
                   np.array([['y', 'y'], ['y', 'y']], dtype='<U1'),
@@ -199,7 +199,7 @@ class TestEnv(unittest.TestCase):
 
         """
         # Testing 'back' rotation counter-clockwise
-        side = "B'"
+        side = 'Br'
         rotation = list(self.cube.rotate_cube(side))
         result = [np.array([['g', 'g'], ['g', 'g']], dtype='<U1'),
                   np.array([['y', 'y'], ['y', 'y']], dtype='<U1'),
