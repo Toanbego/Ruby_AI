@@ -27,8 +27,8 @@ class Cube:
         self.cube_size = cube_size
 
         self.cube, self.face = self.reset_cube()
-        self.action_space = ["L", "L'", "U", "U'", "F", "F'",
-                             "D", "D'", "R", "R'", "B", "B'"]
+        self.action_space = ['L', 'Lr', 'U', 'Ur', 'F', 'Fr',
+                             'D', 'Dr', 'R', 'Rr', 'B', 'Br']
 
     def rotate_cube(self, face, render_image=True):
         """
@@ -52,7 +52,7 @@ class Cube:
 
             self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[2][1, 0], cube_temp[2][0, 0]
             self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[2][1, 1], cube_temp[2][0, 1]
-        elif face == "F'":
+        elif face == 'Fr':
             self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[3][0, 1], cube_temp[3][0, 0]
             self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[0][0, 1], cube_temp[0][1, 1]
             self.face['L'][0, 1], self.face['L'][1, 1] = cube_temp[1][1, 1], cube_temp[1][1, 0]
@@ -69,7 +69,7 @@ class Cube:
 
             self.face['B'][0, 0], self.face['B'][0, 1] = cube_temp[5][1, 0], cube_temp[5][0, 0]
             self.face['B'][1, 0], self.face['B'][1, 1] = cube_temp[5][1, 1], cube_temp[5][0, 1]
-        elif face == "B'":
+        elif face == 'Br':
             self.face['L'][0, 0], self.face['L'][1, 0] = cube_temp[3][1, 0], cube_temp[3][1, 1]
             self.face['D'][1, 0], self.face['D'][1, 1] = cube_temp[4][1, 1], cube_temp[4][0, 1]
             self.face['R'][0, 1], self.face['R'][1, 1] = cube_temp[1][0, 0], cube_temp[1][0, 1]
@@ -86,7 +86,7 @@ class Cube:
 
             self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[4][1, 0], cube_temp[4][0, 0]
             self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[4][1, 1], cube_temp[4][0, 1]
-        elif face == "R'":
+        elif face == 'Rr':
             self.face['B'][0, 0], self.face['B'][1, 0] = cube_temp[3][1, 1], cube_temp[3][0, 1]
             self.face['D'][0, 1], self.face['D'][1, 1] = cube_temp[2][0, 1], cube_temp[2][1, 1]
             self.face['F'][0, 1], self.face['F'][1, 1] = cube_temp[1][0, 1], cube_temp[1][1, 1]
@@ -103,7 +103,7 @@ class Cube:
 
             self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[0][1, 0], cube_temp[0][0, 0]
             self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[0][1, 1], cube_temp[0][0, 1]
-        elif face == "L'":
+        elif face == 'Lr':
             self.face['F'][0, 0], self.face['F'][1, 0] = cube_temp[3][0, 0], cube_temp[3][1, 0]
             self.face['D'][0, 0], self.face['D'][1, 0] = cube_temp[5][1, 1], cube_temp[5][0, 1]
             self.face['B'][0, 1], self.face['B'][1, 1] = cube_temp[1][1, 0], cube_temp[1][0, 0]
@@ -120,7 +120,7 @@ class Cube:
 
             self.face['U'][0, 0], self.face['U'][0, 1] = cube_temp[1][1, 0], cube_temp[1][0, 0]
             self.face['U'][1, 0], self.face['U'][1, 1] = cube_temp[1][1, 1], cube_temp[1][0, 1]
-        elif face == "U'":
+        elif face == 'Ur':
             self.face['R'][0, 0], self.face['R'][0, 1] = cube_temp[2][0, 0], cube_temp[2][0, 1]
             self.face['F'][0, 0], self.face['F'][0, 1] = cube_temp[0][0, 0], cube_temp[0][0, 1]
             self.face['L'][0, 0], self.face['L'][0, 1] = cube_temp[5][0, 0], cube_temp[5][0, 1]
@@ -137,7 +137,7 @@ class Cube:
 
             self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[3][1, 0], cube_temp[3][0, 0]
             self.face['D'][1, 0], self.face['D'][1, 1] = cube_temp[3][1, 1], cube_temp[3][0, 1]
-        elif face == "D'":
+        elif face == 'Dr':
             self.face['R'][1, 0], self.face['R'][1, 1] = cube_temp[5][1, 0], cube_temp[5][1, 1]
             self.face['F'][1, 0], self.face['F'][1, 1] = cube_temp[4][1, 0], cube_temp[4][1, 1]
             self.face['L'][1, 0], self.face['L'][1, 1] = cube_temp[2][1, 0], cube_temp[2][1, 1]
