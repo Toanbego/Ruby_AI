@@ -3,20 +3,19 @@
 import pandas as pd
 import argparse
 import configparser
-config = configparser.ConfigParser()
-config.read("config.ini")
-
-print(config['model']["num_of_sim"])
-
-
+from sklearn.model_selection import train_test_split
+import itertools
 
 from environment import Cube
 from agent import Solver
 
-# TODO Consider making a main class for models, with subclasses for reinforcement and supervised
+config = configparser.ConfigParser()
+config.read("config.ini")
 
-# TODO Since we have 3.600.000 million combinations, perhaps it is possible to completely use supervise learning
-# TODO A possible reward could be how many moves we are away from the solution.
+# TODO Possible rewardsystem: 0 if nothing is achieved. 1 if progress is made (checkpoint)
+# TODO                        -1 if not progress was made within a certain amount of moves.
+# TODO                        Perhaps penalty is a bad solution to this, since it might be close
+# TODO                        to a solution before it was penalized.
 
 
 def parse_arguments():
@@ -29,11 +28,33 @@ def parse_arguments():
 
     parser.add_argument('-r', '--read_data', type=str, default=None,
                         help='Take in a .pkl file containing the data set')
-    parser.add_argument('-g', '--generate_data', type=str, default=None,
+    parser.add_argument('-w', '--generate_data', type=str, default=None,
                         help='If a filename is chosen, a data_set will be created')
 
     arguments = parser.parse_args()
     return arguments
+
+
+def generate_deterministic(cube, filename, nodes=3):
+    """
+    Generates a deterministic dataset
+    :param data_set_size:
+    :param cube:
+    :param filename:
+    :param nodes:
+    :return:
+    """
+    data_set = []
+    action_list = []
+    action_space = cube.action_space
+    all_routes = list(itertools.permutations(action_space, nodes))
+    print(len(all_routes))
+    # Make a search tree
+    for node in range(nodes):
+        for action in action_space:
+            cube.reset_cube()
+            data_set.append(cube.rotate_cube(action))
+
 
 
 def generate_training_samples(data_set_size, cube, file_name, scrambles=1):
@@ -118,8 +139,43 @@ class Network:
         """
 
 
-# def train(data, agent, cube):
-#     num_of_sim = config.ini[model][number_of_simulations]
+def split_data(data):
+    """
+    Splits the data into training, test and validation using sklearn lib.
+    :param data: The data set
+    :return:
+    """
+    return train_test_split(data["Cube"],
+                            data["Actions"],
+                            test_size=0.33)
+
+
+def train(data, agent, cube):
+    """
+    Trains the data either according to supervised learning or reinforcement learning
+
+    We (meaning Torstein) have not decided yet....
+    :param data:
+    :param agent:
+    :param cube:
+    :return:
+    """
+
+    x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
+    num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
+
+    # Start looping through simulations
+    for simulation in range(num_of_sim):
+        # Reset cube before each simulation
+        cube.reset_cube()
+        for cube, actions in zip(x_train, y_train):  # We don't use action at the moment
+
+            # Predict an action
+            agent.action(cube)
+            reward = agent.reward(state=cube)
+
+
+
 
 
 if __name__ == "__main__":
@@ -132,12 +188,16 @@ if __name__ == "__main__":
 
     # Generate Training set
     if args.generate_data is not None:
-        generate_training_samples(1000, rubiks_cube, args.generate_data, scrambles=2)
+        generate_deterministic(rubiks_cube, args.generate_data, nodes=1)
+        # generate_training_samples(1000, rubiks_cube, args.generate_data, scrambles=2)
     elif args.read_data is not None:
         data, data_cube, data_actions = read_data_set(args.read_data)
-        print(data_cube.head()[0])
-    # agent = Solver(rubiks_cube.cube)
-    #
+
+    agent = Solver(rubiks_cube.cube)
+
+    # Start training
+    # train(data, agent, rubiks_cube)
+
     # reward = agent.reward(state=rubiks_cube.cube)
 
     # agent.action('F', 1)

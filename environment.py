@@ -25,6 +25,7 @@ class Cube:
         """
 
         self.cube_size = cube_size
+
         self.cube, self.face = self.reset_cube()
         self.action_space = ["L", "L'", "U", "U'", "F", "F'",
                              "D", "D'", "R", "R'", "B", "B'"]
@@ -203,9 +204,9 @@ if __name__ == "__main__":
     cube = Cube()
     data_set = []
     # cube.scramble_cube(10)
-    cube.cube, cube.face = cube.reset_cube()
-
-    cube.rotate_cube('U', True)
+    # cube.cube, cube.face = cube.reset_cube()
+    #
+    # cube.rotate_cube('U', True)
     # cube.rotate_cube("F'", True)
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
