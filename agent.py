@@ -7,10 +7,6 @@ import pandas as pd
 import argparse
 
 
-
-
-
-
 class Solver:
     """
     This is an agent class with methods that can be used to interact with
