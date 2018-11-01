@@ -203,10 +203,11 @@ class Cube:
 if __name__ == "__main__":
     cube = Cube()
     data_set = []
+    print(cube)
     # cube.scramble_cube(10)
     # cube.cube, cube.face = cube.reset_cube()
     #
-    # cube.rotate_cube('U', True)
+    cube.rotate_cube('U', True)
     # cube.rotate_cube("F'", True)
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
