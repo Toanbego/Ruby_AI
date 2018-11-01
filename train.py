@@ -5,6 +5,7 @@ import argparse
 import configparser
 from sklearn.model_selection import train_test_split
 from data import read_data_set
+import gym
 
 from environment import Cube
 from agent import Solver
@@ -105,18 +106,20 @@ def train(data, agent, cube):
     :return:
     """
 
-    x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
+    # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
     num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
+    max_steps = config['model'].getint('num_of_total_moves')
 
     # Start looping through simulations
     for simulation in range(num_of_sim):
         # Reset cube before each simulation
-        cube.reset_cube()
-        for cube, actions in zip(x_train, y_train):  # We don't use action at the moment
+        cube.scramble_cube(1)
 
-            # Predict an action
+        for step in range(max_steps):
             agent.action(cube)
-            reward = agent.reward(state=cube)
+            agent.reward(cube)
+
+        Network.train()
 
 
 
@@ -132,10 +135,8 @@ if __name__ == "__main__":
     agent = Solver(rubiks_cube.cube)
 
     # Read data
-    data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])
-
-
-
+    if config['dataset'].getboolean('read_data') is True:
+        data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])
 
     # Start training
     train(data, agent, rubiks_cube)

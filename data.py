@@ -80,17 +80,18 @@ def read_data_set(file_name):
     :return:
     """
     # Read is activated or not
-    if config['dataset'].getboolean('read_data') is False:
-        return
     df = pd.read_pickle(f"data/{file_name}.pkl")
     return df, df["Cube"], df["Actions"]
 
+
 if __name__ == "__main__":
     rubiks_cube = environment.Cube()
+    s = config['dataset']['read_file_name']
+    print(s)
     # Generate Training set if set to True
     generate_deterministic_data(rubiks_cube, config['dataset'].getboolean('generate_deterministic'))
     generate_training_samples(rubiks_cube, config['dataset'].getboolean('generate_random'), scrambles=2)
 
     # Read data
-    data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])
-    print(data_cube, data_actions)
+    if config['dataset'].getboolean('read_data') is True:
+        data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])

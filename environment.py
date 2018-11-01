@@ -30,7 +30,7 @@ class Cube:
         self.action_space = ['L', 'Lr', 'U', 'Ur', 'F', 'Fr',
                              'D', 'Dr', 'R', 'Rr', 'B', 'Br']
 
-    def rotate_cube(self, face, render_image=True):
+    def rotate_cube(self, face, render_image=False):
         """
         Move the faces of the cube in either clock-wise or counter-clock-wise
         Movement is hardcoded to work on 2x2x6 cubes
@@ -169,7 +169,7 @@ class Cube:
                 'R': cube[4], 'B': cube[5]}
         return cube, face
 
-    def scramble_cube(self, k: int):
+    def scramble_cube(self, k: int, render_image = False):
         """
         Takes in a cube array, and scramble it k times.
         Returns the scrambled cube
@@ -185,7 +185,7 @@ class Cube:
 
         for a in action:
             store_action.append(a)
-            self.rotate_cube(a)
+            self.rotate_cube(a, render_image)
 
         return [self.cube, store_action]
 
