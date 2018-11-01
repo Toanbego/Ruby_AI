@@ -3,7 +3,7 @@ This is the environment script for the agent.
 """
 
 import numpy as np
-from color_cube import make_image
+from color_cube import make_plot
 import configparser
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -43,7 +43,7 @@ class Cube:
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
         if render_image:
-            make_image(self.cube, 'before_move')
+            make_plot(self.cube)
         if face == 'F':
             self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[1][1, 0], cube_temp[1][1, 1]
             self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[4][1, 0], cube_temp[4][0, 0]
@@ -151,7 +151,7 @@ class Cube:
             self.cube[i] = self.face[face]
 
         if render_image:
-            make_image(self.cube, 'after_move')
+            make_plot(self.cube)
 
         return self.cube
 
@@ -203,12 +203,15 @@ class Cube:
 if __name__ == "__main__":
     cube = Cube()
     data_set = []
-    print(cube)
-    # cube.scramble_cube(10)
+
+    # cube.scramble_cube(2)
     # cube.cube, cube.face = cube.reset_cube()
     #
-    cube.rotate_cube('U', True)
-    # cube.rotate_cube("F'", True)
+    cube.rotate_cube('F', True)
+    cube.rotate_cube('Fr', True)
+
+    # cube.rotate_cube('Fr', True)
+
     # cube.rotate_cube('R', -1)
     # cube.rotate_cube('B', -1)
     # cube.rotate_cube('D', -1)
