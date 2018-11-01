@@ -1,5 +1,5 @@
-# import keras
-# import tensorflow
+import tensorflow as tf
+import keras
 import pandas as pd
 import argparse
 import configparser
@@ -36,7 +36,16 @@ def parse_arguments():
     arguments = parser.parse_args()
     return arguments
 
+def model(input):
+    model = keras.models.Sequential()
+    model.add(keras.layers.Flatten(input))
+    model.add(keras.layers.Dense(4096, activation=tf.nn.relu))
+    model.add(keras.layers.Dense(2048, activation=tf.nn.relu))
+    model.add(keras.layers.Dense(512, activation=tf.nn.relu))
 
+    model.add(keras.layers.Dense(12, activation=tf.nn.softmax))
+    model.compile(optimizer='adam',
+                  metrics=['accuracy'])
 
 class Network:
     """
@@ -57,7 +66,7 @@ class Network:
         self.training_samples = self.scramble_cube()
 
     def model_reinforcement(self):
-        pass
+
 
     def model_supervised(self):
         pass
@@ -109,19 +118,23 @@ def train(data, agent, cube):
     # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
     num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
     max_steps = config['model'].getint('num_of_total_moves')
-
+    dataset = []
     # Start looping through simulations
     for simulation in range(num_of_sim):
         # Reset cube before each simulation
         cube.scramble_cube(1)
 
         for step in range(max_steps):
-            agent.action(cube)
-            agent.reward(cube)
+            state = cube.cube
+            act = agent.action(cube)
+            reward =  agent.reward(cube)
+            next_state = cube.cube
+            dataset.append(state, act, reward, next_state)
+        keras.Model.fit(dataset, batch_size=64, epochs=100)
 
-        Network.train()
 
 
+        keras.models.Model.fit()
 
 
 
@@ -138,8 +151,8 @@ if __name__ == "__main__":
     if config['dataset'].getboolean('read_data') is True:
         data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])
 
-    # Start training
-    train(data, agent, rubiks_cube)
+        # Start training
+        train(data, agent, rubiks_cube)
 
 
 

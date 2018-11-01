@@ -26,14 +26,19 @@ def color_plot(sticker):
     return color
 
 
-def make_plot(sides):
+def make_plot(sides, numeric):
     """
     Renders an image of the current state of the rubik's cube
     :param sides: The sides of the cube
+    :param numeric: Numeric representation
     :return: None
     """
     # Simply inserting the black parts in the plot
-    popper = [['x', 'x'], ['x', 'x']]
+    if numeric:
+        popper = [[6, 6], [6, 6]]
+    else:
+        popper = [['x', 'x'], ['x', 'x']]
+
     sides = np.insert(sides, [0, 1, 4, 5, 5, 6], popper, axis=0)
     # For iterating over the image, 1337
     element = [0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2,
@@ -47,8 +52,12 @@ def make_plot(sides):
     # Looping through all "pixels"
     for u in range(x_axis):
         for v in range(y_axis):
+
             # Giving values to the plotting matrix
-            plotting[v, u] = color_plot(sides[element[el]][v % 2][u % 2])
+            if numeric:
+                plotting[v, u] = sides[element[el]][v % 2][u % 2]
+            else:
+                plotting[v, u] = color_plot(sides[element[el]][v % 2][u % 2])
             el += 1
 
     # create discrete colormap

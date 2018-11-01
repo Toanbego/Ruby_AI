@@ -30,6 +30,7 @@ class Solver:
         :param dir:
         :return:
         """
+        
         cube.rotate_cube('F')
 
     def autodidactic(self, state):

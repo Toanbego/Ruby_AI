@@ -39,11 +39,11 @@ class Cube:
         :param render_image: If True, render an image before and after the move
         :return:
         """
-
+        numeric = config['environment'].getboolean('numeric_representation')
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
         if render_image:
-            make_plot(self.cube)
+            make_plot(self.cube, numeric)
         if face == 'F':
             self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[1][1, 0], cube_temp[1][1, 1]
             self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[4][1, 0], cube_temp[4][0, 0]
@@ -151,7 +151,7 @@ class Cube:
             self.cube[i] = self.face[face]
 
         if render_image:
-            make_plot(self.cube)
+            make_plot(self.cube, numeric)
 
         return self.cube
 
@@ -160,8 +160,13 @@ class Cube:
         Sets a cube array to start position
         :return:
         """
-        cube = np.zeros(self.cube_size, dtype=str)
-        colors = ['g', 'y', 'o', 'w', 'b', 'r']
+
+        if config['environment'].getboolean('numeric_representation'):
+            cube = np.zeros(self.cube_size, dtype=int)
+            colors = [1, 5, 3, 0, 2, 4]
+        else:
+            cube = np.zeros(self.cube_size, dtype=str)
+            colors = ['g', 'y', 'o', 'w', 'b', 'r']
         for k, color in enumerate(colors):
             cube[k] = color
         face = {'L': cube[0], 'U': cube[1],
@@ -209,7 +214,7 @@ if __name__ == "__main__":
     #
     cube.rotate_cube('F', True)
     cube.rotate_cube('Fr', True)
-
+    print(cube.cube)
     # cube.rotate_cube('Fr', True)
 
     # cube.rotate_cube('R', -1)
