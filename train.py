@@ -36,17 +36,6 @@ def parse_arguments():
     arguments = parser.parse_args()
     return arguments
 
-def model(input):
-    model = keras.models.Sequential()
-    model.add(keras.layers.Flatten(input))
-    model.add(keras.layers.Dense(4096, activation=tf.nn.relu))
-    model.add(keras.layers.Dense(2048, activation=tf.nn.relu))
-    model.add(keras.layers.Dense(512, activation=tf.nn.relu))
-
-    model.add(keras.layers.Dense(12, activation=tf.nn.softmax))
-    model.compile(optimizer='adam',
-                  metrics=['accuracy'])
-
 
 class Network:
     """
@@ -62,12 +51,32 @@ class Network:
     We also need to see how the autodidactic algorithm works into this, since the number of states
     is about 3.6 million, it might use a really long time to train on this.
     """
-    def __init__(self):
+    def __init__(self, cube):
+        self.cube = cube
+        self.eta = 0.001  # Learning rate
+        self.gamma = 0.95  # Discount rate
 
-        self.training_samples = self.scramble_cube()
+        self.network = self.model_reinforcement()
 
-    def model_reinforcement(self):
-        pass
+    def model_reinforcement(self, input=None):
+        """
+            Creates a neural network that takes in a 6x2x2 array and returns
+            the expected reward for a set of actions.
+            :param input:
+            :return:
+            """
+        model = keras.models.Sequential()
+        # model.add(keras.layers.Flatten(input))
+        # model.add(InputLayer(batch_input_shape=(1, 5)))
+        model.add(keras.layers.Dense(4096, activation=tf.nn.relu))
+        model.add(keras.layers.Dense(2048, activation=tf.nn.relu))
+        model.add(keras.layers.Dense(512, activation=tf.nn.relu))
+
+        model.add(keras.layers.Dense(12, activation=tf.nn.softmax))
+        model.compile(optimizer='adam',
+                      loss='mse',
+                      metrics=['accuracy'])
+        return model
 
     def model_supervised(self):
         pass
@@ -84,14 +93,49 @@ class Network:
     def remember(self):
         pass
 
-
-    def scramble_cube(self,state, k):
+    def train(self, data, agent, cube):
         """
-        Takes in a cube array, and scramble it k times.
-        :param state
-        :param k:
+        Trains the data either according to supervised learning or reinforcement learning
+        :param data:
+        :param agent:
+        :param cube:
         :return:
         """
+
+        # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
+        num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
+        max_steps = config['model'].getint('num_of_total_moves')
+        pretraining = config['model'].getboolean('pretraining')
+        dataset = []
+        # Start looping through simulations
+        for simulation in range(1, num_of_sim):
+            # Reset cube before each simulation
+            cube.cube, cube.face = cube.reset_cube()
+            cube.scramble_cube(1)
+            if simulation % 10 == 0:
+                pretraining = False
+
+            for step in range(max_steps):
+                # Get the state of the cube
+                state = cube.cube
+
+                # Get an action from agent and execute it
+                act = agent.action(cube.cube, pretraining)
+                # cube.rotate_cube(act)
+
+                # Calculate reward and find the next state
+                reward = agent.reward(cube.cube)
+                next_state = cube.cube
+
+                # Append the result into the dataset
+                dataset.append([state, act, reward, next_state])
+
+                # Is the cube solved?
+                if reward == 1:
+                    break
+
+            keras.Model.fit(x=dataset[0], y=dataset[2], batch_size=16, epochs=1)
+            keras.models.Model.fit()
 
 
 def split_data(data):
@@ -104,43 +148,6 @@ def split_data(data):
                             data["Actions"],
                             test_size=0.33)
 
-
-def train(data, agent, cube):
-    """
-    Trains the data either according to supervised learning or reinforcement learning
-
-    We (meaning Torstein) have not decided yet....
-    :param data:
-    :param agent:
-    :param cube:
-    :return:
-    """
-    # Initialize network
-    model(cube.cube)
-    # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
-    num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
-    max_steps = config['model'].getint('num_of_total_moves')
-    dataset = []
-    # Start looping through simulations
-    for simulation in range(num_of_sim):
-        # Reset cube before each simulation
-        cube.scramble_cube(1)
-
-        for step in range(max_steps):
-            state = cube.cube
-            act = agent.action(cube)
-            reward = agent.reward(cube)
-            next_state = cube.cube
-            dataset.append(state, act, reward, next_state)
-
-        keras.Model.fit(dataset, batch_size=64, epochs=100)
-
-
-
-        keras.models.Model.fit()
-
-
-
 if __name__ == "__main__":
 
     # Parse arguments
@@ -148,14 +155,16 @@ if __name__ == "__main__":
 
     # Set up environment
     rubiks_cube = Cube()
-    agent = Solver(rubiks_cube.cube)
+    agent = Solver(rubiks_cube)
 
     # Read data
     if config['dataset'].getboolean('read_data') is True:
         data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])
 
         # Start training
-        train(data, agent, rubiks_cube)
+        # Initialize network
+        model = Network(rubiks_cube.cube)
+        model.train(data, agent, rubiks_cube)
 
 
 

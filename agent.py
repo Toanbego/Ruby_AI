@@ -6,6 +6,7 @@ import time
 import pandas as pd
 import argparse
 import keras
+import numpy as np
 
 
 class Solver:
@@ -20,19 +21,24 @@ class Solver:
         :param state: Should be before any movement is done
         """
         # TODO make end_state a solution that is all the same color
-        self.end_state = state
+        self.end_state = state.cube
+        self.action_space = state.action_space
 
 
-    def action(self, cube):
+    def action(self, cube, pretraining=False):
         """
         Perform an action on the rubik's cube environment according to a given
         policy
-        :param face:
-        :param dir:
+        :param cube:
+        :param pretraining:
         :return:
         """
-        action = keras.Model.predict(cube.cube)
-        cube.rotate_cube('F')
+        if pretraining is True:
+            return np.random.choice(self.action_space, size=1)
+
+        else:
+            return keras.Model.predict()
+
 
     def autodidactic(self, state):
         pass
