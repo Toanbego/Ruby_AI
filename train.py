@@ -4,12 +4,12 @@ import pandas as pd
 import argparse
 import configparser
 from sklearn.model_selection import train_test_split
-from data import read_data_set
 import gym
+import numpy as np
 
 from environment import Cube
 from agent import Solver
-
+from data import read_data_set
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -47,6 +47,7 @@ def model(input):
     model.compile(optimizer='adam',
                   metrics=['accuracy'])
 
+
 class Network:
     """
     Follow the algorithm State, Action, Reward, State'
@@ -66,7 +67,7 @@ class Network:
         self.training_samples = self.scramble_cube()
 
     def model_reinforcement(self):
-
+        pass
 
     def model_supervised(self):
         pass
@@ -114,7 +115,8 @@ def train(data, agent, cube):
     :param cube:
     :return:
     """
-
+    # Initialize network
+    model(cube.cube)
     # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
     num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
     max_steps = config['model'].getint('num_of_total_moves')
@@ -127,9 +129,10 @@ def train(data, agent, cube):
         for step in range(max_steps):
             state = cube.cube
             act = agent.action(cube)
-            reward =  agent.reward(cube)
+            reward = agent.reward(cube)
             next_state = cube.cube
             dataset.append(state, act, reward, next_state)
+
         keras.Model.fit(dataset, batch_size=64, epochs=100)
 
 

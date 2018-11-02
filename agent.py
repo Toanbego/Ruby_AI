@@ -5,6 +5,7 @@ import environment
 import time
 import pandas as pd
 import argparse
+import keras
 
 
 class Solver:
@@ -30,7 +31,7 @@ class Solver:
         :param dir:
         :return:
         """
-        
+        action = keras.Model.predict(cube.cube)
         cube.rotate_cube('F')
 
     def autodidactic(self, state):
