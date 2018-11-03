@@ -5,6 +5,7 @@ This is the environment script for the agent.
 import numpy as np
 from color_cube import make_plot
 import configparser
+
 config = configparser.ConfigParser()
 config.read("config.ini")
 
@@ -27,8 +28,9 @@ class Cube:
         self.cube_size = cube_size
 
         self.cube, self.face = self.reset_cube()
-        self.action_space = ['L', 'Lr', 'U', 'Ur', 'F', 'Fr',
-                             'D', 'Dr', 'R', 'Rr', 'B', 'Br']
+        self.action_space = np.array([['L', 'Lr'], ['U', 'Ur'], ['F', 'Fr'],
+                                      ['D', 'Dr'], ['R', 'Rr'], ['B', 'Br']])
+
 
     def rotate_cube(self, face, render_image=False):
         """
@@ -174,7 +176,7 @@ class Cube:
                 'R': cube[4], 'B': cube[5]}
         return cube, face
 
-    def scramble_cube(self, k: int, render_image = False):
+    def scramble_cube(self, k: int, render_image=False):
         """
         Takes in a cube array, and scramble it k times.
         Returns the scrambled cube
@@ -207,24 +209,3 @@ class Cube:
 
 if __name__ == "__main__":
     cube = Cube()
-    data_set = []
-
-    # cube.scramble_cube(2)
-    # cube.cube, cube.face = cube.reset_cube()
-    #
-    cube.rotate_cube('F', True)
-    cube.rotate_cube('Fr', True)
-    print(cube.cube)
-    # cube.rotate_cube('Fr', True)
-
-    # cube.rotate_cube('R', -1)
-    # cube.rotate_cube('B', -1)
-    # cube.rotate_cube('D', -1)
-    # cube.rotate_cube('L', -1)
-
-    # cube.rotate_cube('L', 1)
-    # cube.rotate_cube('B', 1)
-    # cube.rotate_cube('R', 1)
-    # cube.rotate_cube('D', 1)
-    # cube.rotate_cube('F', 1)
-    # cube.rotate_cube('U', 1)
