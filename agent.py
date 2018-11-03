@@ -2,6 +2,7 @@
 This is the agent.
 """
 import environment
+
 import time
 import pandas as pd
 import argparse
@@ -24,8 +25,7 @@ class Solver:
         self.end_state = state.cube
         self.action_space = state.action_space
 
-
-    def action(self, cube, pretraining=False):
+    def action(self, cube, network, pretraining=False):
         """
         Perform an action on the rubik's cube environment according to a given
         policy
@@ -34,10 +34,9 @@ class Solver:
         :return:
         """
         if pretraining is True:
-            return np.random.choice(self.action_space, size=1)
+            return np.random.choice(self.action_space.flatten(), size=1)
         else:
-            return keras.Model.predict()
-
+            return network.predict(cube)
 
     def autodidactic(self, state):
         pass

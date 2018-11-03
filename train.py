@@ -8,8 +8,6 @@ import gym
 import numpy as np
 from collections import deque
 
-
-
 from environment import Cube
 from agent import Solver
 from data import read_data_set
@@ -66,14 +64,14 @@ class Network:
             :param input:
             :return:
             """
-        model = keras.models.Sequential()
-        # model.add(keras.layers.Flatten(input))
-        # model.add(InputLayer(batch_input_shape=(1, 5)))
-        model.add(keras.layers.Dense(4096, activation=tf.nn.relu))
-        model.add(keras.layers.Dense(2048, activation=tf.nn.relu))
-        model.add(keras.layers.Dense(512, activation=tf.nn.relu))
 
-        model.add(keras.layers.Dense(12, activation=tf.nn.softmax))
+        model = keras.models.Sequential()
+        model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(4096, activation='relu', input_shape=self.cube.flatten().shape))
+        model.add(keras.layers.Dense(2048, activation='relu'))
+        model.add(keras.layers.Dense(512, activation='relu'))
+
+        model.add(keras.layers.Dense(2, activation='softmax'))
         model.compile(optimizer='adam',
                       loss='mse',
                       metrics=['accuracy'])
@@ -92,13 +90,12 @@ class Network:
         pass
 
     def go_to_gym(self):
-        states = list(zip(*self.dataset))[0]
-        rewards = list(zip(*self.dataset))[2]
-
+        states = np.array(list(zip(*self.dataset))[0])
+        rewards = np.array(list(zip(*self.dataset))[2])
         if len(self.dataset) < 8:
             return
-        keras.Model.fit(x=states, y=rewards, batch_size=8, epochs=1)
-        # keras.models.Model.fit()
+        self.network.fit(x=states, y=rewards, batch_size=8, epochs=1)
+
 
     def train(self, data, agent, cube):
         """
@@ -113,6 +110,9 @@ class Network:
         num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
         max_steps = config['model'].getint('num_of_total_moves')
         pretraining = config['model'].getboolean('pretraining')
+
+
+
 
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
@@ -129,18 +129,20 @@ class Network:
                 state = cube.cube
 
                 # Get an action from agent and execute it
-                act = agent.action(cube.cube, pretraining)
-                cube.rotate_cube(act)
+                act = agent.action(cube.cube, self.network, pretraining)
+
+                cube.rotate_cube(np.argmax(act))
 
                 # Calculate reward and find the next state
                 reward = agent.reward(cube.cube)
                 next_state = cube.cube
 
+                target = reward + self.gamma*np.argmax(act)
                 # Append the result into the dataset
-                self.dataset.appendleft([state, act, reward, next_state])
+                self.dataset.appendleft([state, act, target, next_state])
 
                 # Is the cube solved?
-                if reward == 1:
+                if target == 1:
                     break
 
             self.go_to_gym()

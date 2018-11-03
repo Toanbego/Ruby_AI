@@ -184,7 +184,7 @@ class Cube:
         store_action = []  # List to store the actions
 
         # Randomly choose actions from the action space
-        action = np.random.choice(self.action_space, size=k)
+        action = np.random.choice(self.action_space.flatten(), size=k)
 
         # Loop through actions and move the cube
 
