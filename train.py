@@ -52,6 +52,7 @@ class Network:
         self.cube = cube
         self.eta = 0.001  # Learning rate
         self.gamma = 0.95  # Discount rate
+        self.decay = 0.0001
         self.dataset = deque(maxlen=10000)
         # self.dataset = np.zeros((1, 10000))
 
@@ -72,7 +73,10 @@ class Network:
         model.add(keras.layers.Dense(512, activation='relu'))
 
         model.add(keras.layers.Dense(2, activation='softmax'))
-        model.compile(optimizer='adam',
+
+        adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
+
+        model.compile(optimizer=adam,
                       loss='mse',
                       metrics=['accuracy'])
         return model
@@ -89,12 +93,12 @@ class Network:
     def train(self):
         pass
 
-    def go_to_gym(self):
-        states = np.array(list(zip(*self.dataset))[0])
-        rewards = np.array(list(zip(*self.dataset))[2])
-        if len(self.dataset) < 8:
-            return
-        self.network.fit(x=states, y=rewards, batch_size=8, epochs=1)
+    def go_to_gym(self, states, rewards):
+        # states = np.array(list(zip(*self.dataset))[0])
+        # rewards = np.array(list(zip(*self.dataset))[2])
+        # if len(self.dataset) < 8:
+        #     return
+        self.network.fit(x=states, y=rewards, epochs=1)
 
 
     def train(self, data, agent, cube):
@@ -110,9 +114,6 @@ class Network:
         num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
         max_steps = config['model'].getint('num_of_total_moves')
         pretraining = config['model'].getboolean('pretraining')
-
-
-
 
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
@@ -138,14 +139,20 @@ class Network:
                 next_state = cube.cube
 
                 target = reward + self.gamma*np.argmax(act)
+                try:
+                    target_vector = act
+                    target_vector[np.argmax(act)] = target
+                except IndexError:
+                    print(np.argmax(act))
+
                 # Append the result into the dataset
-                self.dataset.appendleft([state, act, target, next_state])
+                self.dataset.appendleft([state, act, target_vector, next_state])
 
                 # Is the cube solved?
                 if target == 1:
                     break
 
-            self.go_to_gym()
+                self.go_to_gym(state, target_vector)
 
 
 def split_data(data):
