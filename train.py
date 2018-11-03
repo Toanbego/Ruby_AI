@@ -6,6 +6,7 @@ import configparser
 from sklearn.model_selection import train_test_split
 import gym
 import numpy as np
+from collections import deque
 
 from environment import Cube
 from agent import Solver
@@ -14,10 +15,6 @@ from data import read_data_set
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-# TODO Possible rewardsystem: 0 if nothing is achieved. 1 if progress is made (checkpoint)
-# TODO                        -1 if not progress was made within a certain amount of moves.
-# TODO                        Perhaps penalty is a bad solution to this, since it might be close
-# TODO                        to a solution before it was penalized.
 
 
 def parse_arguments():
@@ -55,6 +52,7 @@ class Network:
         self.cube = cube
         self.eta = 0.001  # Learning rate
         self.gamma = 0.95  # Discount rate
+        self.dataset = deque(maxlen=10000)
 
         self.network = self.model_reinforcement()
 
@@ -90,8 +88,9 @@ class Network:
     def train(self):
         pass
 
-    def remember(self):
-        pass
+    def go_to_gym(self):
+        keras.Model.fit(x=self.dataset[0], y=self.dataset[2], batch_size=16, epochs=1)
+        keras.models.Model.fit()
 
     def train(self, data, agent, cube):
         """
@@ -106,12 +105,14 @@ class Network:
         num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
         max_steps = config['model'].getint('num_of_total_moves')
         pretraining = config['model'].getboolean('pretraining')
-        dataset = []
+
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
-            cube.scramble_cube(1)
+            cube.cube = cube.scramble_cube(1)[0]
+
+            # After 10 simulations, pretraining is turned off
             if simulation % 10 == 0:
                 pretraining = False
 
@@ -121,21 +122,20 @@ class Network:
 
                 # Get an action from agent and execute it
                 act = agent.action(cube.cube, pretraining)
-                # cube.rotate_cube(act)
+                cube.rotate_cube(act)
 
                 # Calculate reward and find the next state
                 reward = agent.reward(cube.cube)
                 next_state = cube.cube
 
                 # Append the result into the dataset
-                dataset.append([state, act, reward, next_state])
+                self.dataset.appendleft([state, act, reward, next_state])
 
                 # Is the cube solved?
                 if reward == 1:
                     break
-
-            keras.Model.fit(x=dataset[0], y=dataset[2], batch_size=16, epochs=1)
-            keras.models.Model.fit()
+                    
+            self.go_to_gym()
 
 
 def split_data(data):
@@ -148,7 +148,12 @@ def split_data(data):
                             data["Actions"],
                             test_size=0.33)
 
-if __name__ == "__main__":
+
+def main():
+    """
+
+    :return:
+    """
 
     # Parse arguments
     # args = parse_arguments()
@@ -156,6 +161,7 @@ if __name__ == "__main__":
     # Set up environment
     rubiks_cube = Cube()
     agent = Solver(rubiks_cube)
+
 
     # Read data
     if config['dataset'].getboolean('read_data') is True:
@@ -167,7 +173,9 @@ if __name__ == "__main__":
         model.train(data, agent, rubiks_cube)
 
 
+if __name__ == '__main__':
 
+    main()
 
 
 

@@ -35,7 +35,6 @@ class Solver:
         """
         if pretraining is True:
             return np.random.choice(self.action_space, size=1)
-
         else:
             return keras.Model.predict()
 
@@ -52,11 +51,21 @@ class Solver:
         :param next_state:
         :return:
         """
-
-        if (len(set(element)) == 1 for element in state):
+        reward_check = [len(np.unique(element)) for element in state]
+        if len(set(reward_check)) == 1:
             return 1
         else:
             return -1
+
+
+if __name__ == '__main__':
+    cube = environment.Cube()
+    agent = Solver(cube)
+
+    cube.scramble_cube(3)
+
+    agent.reward(cube.cube)
+
 
 
 
