@@ -8,6 +8,8 @@ import gym
 import numpy as np
 from collections import deque
 
+
+
 from environment import Cube
 from agent import Solver
 from data import read_data_set
@@ -53,6 +55,7 @@ class Network:
         self.eta = 0.001  # Learning rate
         self.gamma = 0.95  # Discount rate
         self.dataset = deque(maxlen=10000)
+        # self.dataset = np.zeros((1, 10000))
 
         self.network = self.model_reinforcement()
 
@@ -89,8 +92,13 @@ class Network:
         pass
 
     def go_to_gym(self):
-        keras.Model.fit(x=self.dataset[0], y=self.dataset[2], batch_size=16, epochs=1)
-        keras.models.Model.fit()
+        states = list(zip(*self.dataset))[0]
+        rewards = list(zip(*self.dataset))[2]
+
+        if len(self.dataset) < 8:
+            return
+        keras.Model.fit(x=states, y=rewards, batch_size=8, epochs=1)
+        # keras.models.Model.fit()
 
     def train(self, data, agent, cube):
         """
@@ -134,7 +142,7 @@ class Network:
                 # Is the cube solved?
                 if reward == 1:
                     break
-                    
+
             self.go_to_gym()
 
 
