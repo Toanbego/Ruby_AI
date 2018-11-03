@@ -54,7 +54,7 @@ class Solver:
         if len(set(reward_check)) == 1:
             return 1
         else:
-            return -1
+            return 0
 
 
 if __name__ == '__main__':

@@ -71,8 +71,9 @@ class Network:
         model.add(keras.layers.Dense(4096, activation='relu', input_shape=self.cube.flatten().shape))
         model.add(keras.layers.Dense(2048, activation='relu'))
         model.add(keras.layers.Dense(512, activation='relu'))
+        model.add(keras.layers.Dense(12, activation='relu'))
 
-        model.add(keras.layers.Dense(2, activation='softmax'))
+        model.add(keras.layers.Dense(1, activation='softmax'))
 
         adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
 
@@ -96,8 +97,8 @@ class Network:
     def go_to_gym(self, states, rewards):
         # states = np.array(list(zip(*self.dataset))[0])
         # rewards = np.array(list(zip(*self.dataset))[2])
-        # if len(self.dataset) < 8:
-        #     return
+        if len(self.dataset) < 30:
+            return
         self.network.fit(x=states, y=rewards, epochs=1)
 
 
@@ -139,20 +140,20 @@ class Network:
                 next_state = cube.cube
 
                 target = reward + self.gamma*np.argmax(act)
-                try:
-                    target_vector = act
-                    target_vector[np.argmax(act)] = target
-                except IndexError:
-                    print(np.argmax(act))
+                print(self.network.output_shape)
+                target_vector = act.flatten()
+                target_vector[np.argmax(target_vector)] = target
 
                 # Append the result into the dataset
-                self.dataset.appendleft([state, act, target_vector, next_state])
+                self.dataset.appendleft([state, act, target_vector.reshape((6, 2)), next_state])
 
                 # Is the cube solved?
                 if target == 1:
+                    print("cube is solved")
                     break
 
-                self.go_to_gym(state, target_vector)
+                # Go train
+                self.go_to_gym(state, target_vector.reshape(6, 2))
 
 
 def split_data(data):
