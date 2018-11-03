@@ -34,7 +34,7 @@ class Solver:
         :return:
         """
         if pretraining is True:
-            return np.random.choice(self.action_space, size=1)
+            return np.random.choice(self.action_space.flatten(), size=1)
         else:
             return keras.Model.predict()
 
