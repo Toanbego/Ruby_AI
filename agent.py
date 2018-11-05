@@ -22,7 +22,6 @@ class Solver:
         Initialize attributes for class
         :param state: Should be before any movement is done
         """
-        # TODO make end_state a solution that is all the same color
         self.end_state = state.cube
         self.action_space = state.action_space
         self.network = network

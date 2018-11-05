@@ -97,8 +97,8 @@ class Network:
             x_batch.append(state), y_batch.append(target)
 
         # Reshape the data to match the batch size
-        states = np.array(x_batch).reshape(8, 24)
-        rewards = np.array(y_batch).reshape(8, 12)
+        states = np.array(x_batch).reshape(self.batch_size, 24)
+        rewards = np.array(y_batch).reshape(self.batch_size, 12)
 
         self.network.fit(x=states, y=rewards,
                          epochs=1,
@@ -116,11 +116,12 @@ class Network:
 
         # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
         num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
-        max_steps = config['model'].getint('num_of_total_moves')
+        max_steps = config['model'].getint('num_of_total_moves')  # Max amount of moves before "losing"
 
         solved_rate = deque(maxlen=40)
         solved_final = 0
         difficulty_level = 1
+
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
             # Reset cube before each simulation
@@ -130,7 +131,7 @@ class Network:
             cube.cube = cube.scramble_cube(difficulty_level)[0]
 
             # After 10 simulations, pretraining is turned off
-            if simulation > 50:
+            if simulation > self.batch_size*5:
                 self.pretraining = False
 
             for step in range(max_steps):
@@ -139,7 +140,6 @@ class Network:
 
                 # Get an action from agent and execute it
                 act = agent.action(state.reshape(1, 24), self.pretraining)
-
                 cube.rotate_cube(np.argmax(act))
 
                 # Calculate reward and find the next state
