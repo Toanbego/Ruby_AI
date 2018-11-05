@@ -8,6 +8,7 @@ import pandas as pd
 import argparse
 import keras
 import numpy as np
+import random
 
 
 class Solver:
@@ -25,6 +26,7 @@ class Solver:
         self.end_state = state.cube
         self.action_space = state.action_space
         self.network = network
+        self.hey = np.arange(0, 12)
 
     def action(self, cube, pretraining=False):
         """
@@ -35,20 +37,15 @@ class Solver:
         :return:
         """
         if pretraining is True:
-            return np.random.choice(self.action_space.flatten(), size=1)
+            return np.random.random(12).reshape(1, 12)
         else:
             return self.network.predict(cube)
-
-    def autodidactic(self, state):
-        pass
 
     def reward(self, state=None):
         """
         Should calculate reward based on some of this information.
         Perhaps the number of moves it is away from win state
         :param state:
-        :param action:
-        :param next_state:
         :return:
         """
         reward_check = [len(np.unique(element)) for element in state]
