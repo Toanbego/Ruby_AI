@@ -72,29 +72,14 @@ class Network:
         model.add(keras.layers.Dense(4096, activation='relu', input_dim=24))
         model.add(keras.layers.Dense(2048, activation='relu'))
         model.add(keras.layers.Dense(512, activation='relu'))
-        # model.add(keras.layers.Dense(12, activation='relu'))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
-
         adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
-
         model.compile(optimizer=adam,
                       loss='mse',
                       metrics=['accuracy'])
         return model
-
-    def model_supervised(self):
-        pass
-
-    def initialize_networks(self):
-        pass
-
-    def memory(self):
-        pass
-
-    def train(self):
-        pass
 
     def go_to_gym(self, states, rewards):
         if len(self.memory) < 30:
@@ -129,15 +114,16 @@ class Network:
         max_steps = config['model'].getint('num_of_total_moves')
         pretraining = config['model'].getboolean('pretraining')
 
+        solved_rate = deque(maxlen=40)
+
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
-            print(simulation)
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
             cube.cube = cube.scramble_cube(1)[0]
 
             # After 10 simulations, pretraining is turned off
-            if simulation % 10 == 0:
+            if simulation > 10:
                 pretraining = False
 
             for step in range(max_steps):
@@ -163,11 +149,26 @@ class Network:
 
                 # Is the cube solved?
                 if reward == 1:
-                    print("cube is solved")
+                    solved_rate.appendleft(1)
+                    print("\033[93mcube is solved\033[0m")
                     break
 
                 # Go train
                 self.go_to_gym(state.reshape((1, 24)), target_vector)
+
+            # If the reward is zero here, it means the cube was not solved
+            if reward == 0:
+                solved_rate.appendleft(0)
+            # Calculate score
+            if simulation % 10 == 0:
+                solved = sum(solved_rate) / len(solved_rate)
+                print(f'solved rate for last 40 cubes: {solved.round(2)}')
+                
+                # # Check if over 50% is solved
+                # if sum(solved_rate) > len(solved_rate)/2:
+                #     solved = sum(solved_rate)/len(solved_rate)
+                #     print(f'solved rate for last 40 cubes: {solved}')
+
 
 
 def split_data(data):

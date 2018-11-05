@@ -31,6 +31,9 @@ class Cube:
         self.action_space = np.array([['L', 'Lr'], ['U', 'Ur'], ['F', 'Fr'],
                                       ['D', 'Dr'], ['R', 'Rr'], ['B', 'Br']])
 
+        self.num_to_str = {0: 'L', 6: 'Lr', 1: 'U', 7: 'Ur', 2: 'F', 8: 'Fr',
+                           3: 'D', 9: 'Dr', 4: 'R', 10: 'Rr', 5: 'B', 11: 'Br'}
+
 
     def rotate_cube(self, face, render_image=False):
         """
@@ -44,8 +47,12 @@ class Cube:
         numeric = config['environment'].getboolean('numeric_representation')
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
+        if face != str(face):
+            face = self.num_to_str[face]
+
         if render_image:
             make_plot(self.cube, numeric)
+
         if face == 'F':
             self.face['R'][0, 0], self.face['R'][1, 0] = cube_temp[1][1, 0], cube_temp[1][1, 1]
             self.face['D'][0, 0], self.face['D'][0, 1] = cube_temp[4][1, 0], cube_temp[4][0, 0]
