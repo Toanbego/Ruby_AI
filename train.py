@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 import gym
 import numpy as np
 from collections import deque
+import random
 
 from environment import Cube
 from agent import Solver
@@ -53,9 +54,10 @@ class Network:
         self.eta = 0.001  # Learning rate
         self.gamma = 0.95  # Discount rate
         self.decay = 0.0001
-        self.dataset = deque(maxlen=10000)
-        # self.dataset = np.zeros((1, 10000))
+        self.batch_size = config['model'].getint('batch_size')
+        self.memory = deque(maxlen=10000)
 
+        # Initialize network
         self.network = self.model_reinforcement()
 
     def model_reinforcement(self, input=None):
@@ -67,13 +69,13 @@ class Network:
             """
 
         model = keras.models.Sequential()
-        model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(4096, activation='relu', input_shape=self.cube.flatten().shape))
+        model.add(keras.layers.Dense(4096, activation='relu', input_dim=24))
         model.add(keras.layers.Dense(2048, activation='relu'))
         model.add(keras.layers.Dense(512, activation='relu'))
-        model.add(keras.layers.Dense(12, activation='relu'))
+        # model.add(keras.layers.Dense(12, activation='relu'))
 
-        model.add(keras.layers.Dense(1, activation='softmax'))
+        model.add(keras.layers.Dense(12, activation='softmax'))
+
 
         adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
 
@@ -95,11 +97,22 @@ class Network:
         pass
 
     def go_to_gym(self, states, rewards):
-        # states = np.array(list(zip(*self.dataset))[0])
-        # rewards = np.array(list(zip(*self.dataset))[2])
-        if len(self.dataset) < 30:
+        if len(self.memory) < 30:
             return
-        self.network.fit(x=states, y=rewards, epochs=1)
+
+        # minibatch = random.sample(self.memory, self.batch_size)
+        # #TODO make this a one line for loop or no loop at all
+        # x_batch, y_batch = [], []
+        # for state, act, target, next_state in minibatch:
+        #     x_batch.append(state), y_batch.append(target)
+
+        # states = np.array(list(zip(minibatch))[0])
+        # rewards = np.array(list(zip(minibatch))[2])
+
+        self.network.fit(x=states, y=rewards,
+                         epochs=1,
+                         batch_size=1,
+                         verbose=0)
 
 
     def train(self, data, agent, cube):
@@ -118,6 +131,7 @@ class Network:
 
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
+            print(simulation)
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
             cube.cube = cube.scramble_cube(1)[0]
@@ -131,29 +145,29 @@ class Network:
                 state = cube.cube
 
                 # Get an action from agent and execute it
-                act = agent.action(cube.cube, self.network, pretraining)
+                act = agent.action(state.reshape(1, 24), pretraining)
 
                 cube.rotate_cube(np.argmax(act))
 
                 # Calculate reward and find the next state
                 reward = agent.reward(cube.cube)
-                next_state = cube.cube
+                next_state = state
 
-                target = reward + self.gamma*np.argmax(act)
-                print(self.network.output_shape)
-                target_vector = act.flatten()
-                target_vector[np.argmax(target_vector)] = target
+                #TODO legg til discount rate ved å prøve å predict next_state også
+                target = reward #+ self.gamma * np.max(agent.action(next_state.reshape(1, 24), pretraining))
+                target_vector = act
+                target_vector[0][np.argmax(act)] = target
 
                 # Append the result into the dataset
-                self.dataset.appendleft([state, act, target_vector.reshape((6, 2)), next_state])
+                self.memory.appendleft((state.reshape(1, 24), act, target_vector, next_state))
 
                 # Is the cube solved?
-                if target == 1:
+                if reward == 1:
                     print("cube is solved")
                     break
 
                 # Go train
-                self.go_to_gym(state, target_vector.reshape(6, 2))
+                self.go_to_gym(state.reshape((1, 24)), target_vector)
 
 
 def split_data(data):
@@ -176,18 +190,16 @@ def main():
     # Parse arguments
     # args = parse_arguments()
 
-    # Set up environment
-    rubiks_cube = Cube()
-    agent = Solver(rubiks_cube)
-
-
     # Read data
     if config['dataset'].getboolean('read_data') is True:
         data, data_cube, data_actions = read_data_set(config['dataset']['read_file_name'])
 
         # Start training
         # Initialize network
+        # Set up environment
+        rubiks_cube = Cube()
         model = Network(rubiks_cube.cube)
+        agent = Solver(rubiks_cube, model.network)
         model.train(data, agent, rubiks_cube)
 
 

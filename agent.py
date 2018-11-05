@@ -16,7 +16,7 @@ class Solver:
     the Rubik's cube environment in environment.py
     """
 
-    def __init__(self, state):
+    def __init__(self, state, network):
         """
         Initialize attributes for class
         :param state: Should be before any movement is done
@@ -24,8 +24,9 @@ class Solver:
         # TODO make end_state a solution that is all the same color
         self.end_state = state.cube
         self.action_space = state.action_space
+        self.network = network
 
-    def action(self, cube, network, pretraining=False):
+    def action(self, cube, pretraining=False):
         """
         Perform an action on the rubik's cube environment according to a given
         policy
@@ -36,7 +37,7 @@ class Solver:
         if pretraining is True:
             return np.random.choice(self.action_space.flatten(), size=1)
         else:
-            return network.predict(cube)
+            return self.network.predict(cube)
 
     def autodidactic(self, state):
         pass
