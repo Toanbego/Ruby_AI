@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from collections import deque
 import random
+import time
+import h5py
 
 from environment import Cube
 from agent import Solver
@@ -68,7 +70,7 @@ class Network:
 
         model = keras.models.Sequential()
         model.add(keras.layers.Dense(1024, activation='relu',
-                                     batch_size=8,
+                                     batch_size=self.batch_size,
                                      input_dim=24))
         model.add(keras.layers.Dense(512, activation='relu'))
         model.add(keras.layers.Dense(256, activation='relu'))
@@ -103,7 +105,7 @@ class Network:
         self.network.fit(x=states, y=rewards,
                          epochs=1,
                          verbose=0,
-                         batch_size=8)
+                         batch_size=self.batch_size)
 
 
     def train(self, agent, cube):
@@ -181,7 +183,7 @@ class Network:
                 if round(solved, 2) == 1:
                     print("Increasing the number of scrambles by 1")
                     difficulty_level += 1
-                    keras.models.save_model(self.network, "Solves_one_scramble")
+                    keras.models.save_model(self.network, f"models/solves_one_scramble - {time.time()}.h5")
 
         print(f"Final difficulty level: {difficulty_level}")
         print(solved_final/(simulation*0.8))
