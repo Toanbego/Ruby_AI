@@ -48,7 +48,7 @@ class Cube:
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
         if face != str(face):
-            face = self.num_to_str[face]
+            face = self.num_to_str[int(face)]
 
         if render_image:
             make_plot(self.cube, numeric)

@@ -6,6 +6,7 @@ import numpy as np
 from collections import deque
 import random
 import time
+import math
 # import h5py
 
 from environment import Cube
@@ -51,7 +52,7 @@ class Network:
         self.cube = cube
         self.eta = 0.0001  # Learning rate
         self.gamma = 0.95  # Discount rate
-        self.decay = 0.0001
+        self.decay = 0.995
         self.epsilon = config['network'].getfloat('epsilon')
         self.epsilon_min = config['network'].getfloat('epsilon_min')
         self.epsilon_decay = config['network'].getfloat('epsilon_decay')
@@ -123,8 +124,9 @@ class Network:
         num_of_sim = config['simulation'].getint('num_of_sim')  # Fetch the amount of games
         max_steps = config['simulation'].getint('num_of_total_moves')  # Max amount of moves before "losing"
 
-        solved_rate = deque(maxlen=30)
+        solved_rate = deque(maxlen=40)
         solved_final = 0
+        self.best_accuracy = 0.0
         difficulty_level = 1
 
         # Start looping through simulations
@@ -133,19 +135,27 @@ class Network:
             cube.cube, cube.face = cube.reset_cube()
 
             # Scramble the cube as many times as the scramble_limit
-            cube.cube, actions = cube.scramble_cube(50)
+            cube.cube, actions = cube.scramble_cube(difficulty_level)
 
             # After 10 simulations, pretraining is turned off
-            if simulation > self.batch_size*200:
-                self.pretraining = True
+            if simulation > 100:
+                self.pretraining = False
 
             for step in range(max_steps):
                 # Get the state of the cube
                 state = cube.cube
 
                 # Get an action from agent and execute it
-                action = agent.action(state.reshape(1, 24), self.pretraining)
-                cube.rotate_cube(np.argmax(action))
+                q_values = agent.action(state.reshape(1, 24), self.pretraining)
+
+                # Choose random action if pretraining is true
+                if self.pretraining: #is True or self.get_epsilon(simulation) >= np.random.random():
+                    take_action = np.random.random_integers(0, 11, 1)
+                else:
+                    take_action = np.argmax(q_values)
+
+                # Execute action
+                cube.rotate_cube(take_action)
 
                 # Calculate reward and find the next state
                 next_state = cube.cube
@@ -153,11 +163,11 @@ class Network:
 
                 # TODO Everything after reward is an attempt to add the future reward
                 target = reward #+ self.gamma * np.max(agent.action(next_state.reshape(1, 24), self.pretraining))
-                target_vector = action
-                target_vector[0][np.argmax(action)] = target
+                target_vector = q_values
+                target_vector[0][take_action] = target
 
                 # Append the result into the dataset
-                self.memory.appendleft((state.reshape(1, 24), action, target_vector, next_state))
+                self.memory.appendleft((state.reshape(1, 24), q_values, target_vector, next_state))
 
                 # Go train, if pretraining is finished
                 if self.pretraining is False:
@@ -170,7 +180,7 @@ class Network:
                         solved_final += 1
                     solved_rate.appendleft(1)
                     break
-
+            # self.epsilon *= self.epsilon_decay
             # If the reward is zero here, it means the cube was not solved
             if reward == 0:
                 solved_rate.appendleft(0)
@@ -181,9 +191,22 @@ class Network:
 
 
         print(f"Final difficulty level: {difficulty_level}")
-        print(solved_final/(simulation*0.8))
+        print(f" The best accuracy: {self.best_accuracy}")
+        # print(f"How many solved of the last 80% of simulation: {solved_final/(simulation*0.8)}")
         print(solved_final)
-        print((simulation*0.8))
+        # print((simulation*0.8))
+
+    def get_epsilon(self, simulation):
+        """
+        Returns the e - greedy
+        :param simulation:
+        :return:
+        """
+        # return max(self.epsilon_min, self.epsilon)
+        if self.pretraining is False:
+            return max(self.epsilon_min, min(self.epsilon, 1.0 - math.log10((simulation + 1) * self.epsilon_decay)))
+        else:
+            return 1
 
     def test(self):
         """
@@ -205,8 +228,11 @@ class Network:
         if simulation % len(solved_rate) == 0:
             solved = (sum(solved_rate) / len(solved_rate))
             print(f"\033[93m"
-                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)}, accuracy: {round(solved, 5)}"
+                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)}, accuracy: {round(solved, 2)}"
+                  #f"\nExploration rate: {self.get_epsilon(simulation)}"
                   f"\033[0m")
+            if solved > self.best_accuracy:
+                self.best_accuracy = solved
 
             # Saves the model if the model is deemed good enough
             if round(solved, 2) == 1:

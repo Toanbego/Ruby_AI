@@ -35,10 +35,7 @@ class Solver:
         :param pretraining:
         :return:
         """
-        if pretraining is True:
-            return np.random.random(12).reshape(1, 12)
-        else:
-            return self.network.predict(cube)
+        return self.network.predict(cube)
 
     def reward(self, state=None):
         """
@@ -48,7 +45,7 @@ class Solver:
         :return:
         """
         reward_check = [len(np.unique(element)) for element in state]
-        if len(set(reward_check)) == 1:
+        if sum(reward_check) == 6:
             return 1
         else:
             return 0
