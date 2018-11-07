@@ -56,6 +56,7 @@ class Network:
         self.batch_size = config['model'].getint('batch_size')
         self.memory = deque(maxlen=10000)
         self.pretraining = config['model'].getboolean('pretraining')
+        self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", write_graph=True, update_freq=50)
 
         # Initialize network
         self.network = self.model_reinforcement()
@@ -81,6 +82,7 @@ class Network:
         model.compile(optimizer=adam,
                       loss='mse',
                       metrics=['accuracy'])
+
         return model
 
     def go_to_gym(self):
@@ -105,7 +107,9 @@ class Network:
         self.network.fit(x=states, y=rewards,
                          epochs=1,
                          verbose=0,
-                         batch_size=self.batch_size)
+                         batch_size=self.batch_size,
+                         callbacks=[self.tensorboard]
+                         )
 
 
     def train(self, agent, cube):
