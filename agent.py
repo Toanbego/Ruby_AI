@@ -36,6 +36,7 @@ class Solver:
         :return:
         """
         return self.network.predict(cube)
+        # cube, _ = cube.rotate_cube(np.argmax(actions))
 
     def reward(self, state=None):
         """
