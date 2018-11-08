@@ -120,6 +120,7 @@ class Network:
         :return:
         """
         # TODO Exploration er ett problem ser det ut til.
+        # TODO prioritized replay. Større sjangse for at en state med rewward blir valgt
 
         num_of_sim = config['simulation'].getint('num_of_sim')  # Fetch the amount of games
         max_steps = config['simulation'].getint('num_of_total_moves')  # Max amount of moves before "losing"
@@ -145,7 +146,7 @@ class Network:
             if simulation > 1000:
                 self.pretraining = False
 
-            for step in range(max_steps):
+            for step in range(self.difficulty_level):
                 # Get the state of the cube
                 state = copy.deepcopy(cube.cube)
 
@@ -176,17 +177,19 @@ class Network:
                 target_vector = q_values.copy()
                 target_vector[0][take_action] = target
 
+                # Append the result into the dataset
+                self.memory.appendleft((state.reshape(1, 24), q_values, target_vector, next_state))
+
+                # Go train, if pretraining is finished
+                if self.pretraining is False:
+                    self.go_to_gym()
+
                 # Is the cube solved?
                 if reward == 1:
                     # print(q_values)
                     # print(face, actions)
                     # print(target_vector)
-                    # Append the result into the dataset
-                    self.memory.appendleft((state.reshape(1, 24), q_values, target_vector, next_state))
 
-                    # Go train, if pretraining is finished
-                    if self.pretraining is False:
-                        self.go_to_gym()
                     # Solved score from the last 80% of the simulation
                     if simulation > simulation*0.8:
                         solved_final += 1
@@ -239,7 +242,7 @@ class Network:
             solved = (sum(solved_rate) / len(solved_rate))
             print(f"\033[93m"
                   f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \naccuracy: {round(solved, 2)}"
-                  f"\nExploration rate: {self.get_epsilon(simulation)}\nScrambles {self.difficulty_level}"
+                  f"\nExploration rate: {self.get_epsilon(self.epsilon_decay_steps)}\nScrambles {self.difficulty_level}"
                   f"\n================================="
                   f"\033[0m")
             if solved > self.best_accuracy:
