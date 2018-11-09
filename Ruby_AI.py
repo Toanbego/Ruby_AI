@@ -125,7 +125,7 @@ class Network:
         solved_rate = deque(maxlen=40)
         solved_final = 0
         self.best_accuracy = 0.0
-
+        self.difficulty_counter = 0
         self.difficulty_level = 1
         self.epsilon_decay_steps = 0
 
@@ -150,12 +150,8 @@ class Network:
             for step in range(self.difficulty_level):
 
                 # Get the state of the cube
-
-                state = cube.cube
-                # state = keras.utils.normalize(cube.cube, order=2)
-
                 state = copy.deepcopy(cube.cube)
-
+                # state = keras.utils.normalize(cube.cube, order=2)
 
                 # Get an action from agent and execute it
                 actions = agent.action(state.reshape(1, 24), self.pretraining)
@@ -167,7 +163,6 @@ class Network:
                 else:
                     take_action = np.argmax(actions)
 
-
                 # if not self.pretraining:
                 #     if cube.num_to_str[int(take_action)] == 'Fr' or cube.num_to_str[int(take_action)] == 'Br':
                 #         s = cube.num_to_str[int(take_action)]
@@ -176,12 +171,11 @@ class Network:
                 # Execute action
                 next_state, face = cube.rotate_cube(take_action)
 
-
                 # Calculate reward and find the next state
                 reward = agent.reward(next_state)
 
                 # TODO Everything after reward is an attempt to add the future reward
-                target_vector = self.create_target_vector(reward, actions, take_action)
+                target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
 
                 # Append the result into the dataset
                 self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
@@ -213,7 +207,7 @@ class Network:
         print(f"Final difficulty level: {self.difficulty_level}")
         print(f" The best accuracy: {self.best_accuracy}")
 
-    def create_target_vector(self, reward, actions, take_action):
+    def create_target_vector(self, agent, next_state, reward, actions, take_action):
         """
         Creates the target vector used as label in the training.
         Will also look at future rewards with a discount factor
@@ -221,8 +215,8 @@ class Network:
         :param actions:
         :return:
         """
-        if self.difficulty_level > 1:
-            target = reward  # + self.gamma * np.max(agent.action(next_state.reshape(1, 24), self.pretraining))
+        if self.difficulty_level > 0:
+            target = reward + self.gamma * np.max(agent.action(next_state.reshape(1, 24), self.pretraining))
         else:
             target = reward
         target_vector = actions.copy()
@@ -238,9 +232,6 @@ class Network:
         """
         # Sample a batch of data from memory
         mini_batch = random.sample(self.memory, self.batch_size)
-
-        # selection_wheel = [(fitness / sum(self.memory[2])) for fitness in self.memory[2]]
-        # mini_batch = np.random.choice(self.memory, p=selection_wheel)  # Random selection
 
         # Append the state and target from the data
         x_batch, y_batch = [], []
@@ -293,12 +284,14 @@ class Network:
 
             # Saves the model if the model is deemed good enough
             if round(solved, 2) == 1 and self.pretraining is False:
-                self.best_accuracy = 0
-                self.epsilon_decay_steps = 0
-                self.epsilon = 1
-                print("Increasing the number of scrambles by 1")
-                self.difficulty_level += 1
-                keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+                self.difficulty_counter += 1
+                if self.difficulty_counter > 4:
+                    self.best_accuracy = 0
+                    self.epsilon_decay_steps = 0
+                    self.epsilon = config['network'].getfloat('epsilon')
+                    print("Increasing the number of scrambles by 1")
+                    self.difficulty_level += 1
+                    keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
 def main():
     """
