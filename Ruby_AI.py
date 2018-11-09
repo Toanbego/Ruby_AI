@@ -61,7 +61,7 @@ class Network:
         self.memory = deque(maxlen=5000)
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.difficulty_level = 1
-        # self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
+        self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
 
         # Initialize network
 
@@ -108,14 +108,19 @@ class Network:
 
         # Create a mini batch from memory
         states, rewards = self.sample_memory()
-
-        self.network.fit(x=states, y=rewards,
-                         epochs=1,
-                         verbose=0,
-                         batch_size=self.batch_size,
-
-                         # callbacks=[self.tensorboard]
-                         )
+        if config['simulation'].getboolean('test'):
+            self.network.fit(x=states, y=rewards,
+                             epochs=1,
+                             verbose=0,
+                             batch_size=self.batch_size,
+                             callbacks=[self.tensorboard]
+                             )
+        else:
+            self.network.fit(x=states, y=rewards,
+                             epochs=1,
+                             verbose=0,
+                             batch_size=self.batch_size
+                             )
 
     def load_network(self):
         """
@@ -389,6 +394,7 @@ class Network:
 
         print(f"Final difficulty level: {self.difficulty_level}")
         print(f" The best accuracy: {self.best_accuracy}")
+
 
 
 def main():
