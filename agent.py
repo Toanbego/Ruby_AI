@@ -25,7 +25,7 @@ class Solver:
         self.end_state = state.cube
         self.action_space = state.action_space
         self.network = network
-        self.hey = np.arange(0, 12)
+
 
     def action(self, cube, pretraining=False):
         """
