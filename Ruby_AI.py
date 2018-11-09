@@ -76,10 +76,10 @@ class Network:
         model = keras.models.Sequential()
         # model.add(keras.utils.normalize(input))
 
-        model.add(keras.layers.Dense(1024, activation='relu',
+        model.add(keras.layers.Dense(256, activation='relu',
                                      batch_size=self.batch_size))
-        model.add(keras.layers.Dense(512, activation='relu'))
-        model.add(keras.layers.Dense(256, activation='relu'))
+        model.add(keras.layers.Dense(128, activation='relu'))
+        model.add(keras.layers.Dense(64, activation='relu'))
 
 
         model.add(keras.layers.Dense(12, activation='softmax'))
@@ -135,7 +135,7 @@ class Network:
 
         # Start looping through simulations
         simulation = 0
-        while self.difficulty_level < 3:
+        while self.difficulty_level:
             try:
             # for simulation in range(1, num_of_sim):
                 # Reset cube before each simulation
