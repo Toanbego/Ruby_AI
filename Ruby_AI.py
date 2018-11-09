@@ -51,7 +51,7 @@ class Network:
     def __init__(self, cube):
         self.cube = cube
         self.eta = config['network'].getfloat('learning_rate')  # Learning rate
-        self.gamma = 0.95  # Discount rate
+        self.gamma = config['network'].getfloat('discount_rate')  # Discount rate
         self.decay = 0.995
         self.epsilon = config['network'].getfloat('epsilon')
         self.epsilon_min = config['network'].getfloat('epsilon_min')
@@ -60,7 +60,7 @@ class Network:
         self.memory = deque(maxlen=5000)
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.difficulty_level = 1
-        self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", write_graph=True, update_freq=50)
+        # self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", write_graph=True, update_freq=500)
 
         # Initialize network
         self.network = self.model_reinforcement()
@@ -109,7 +109,8 @@ class Network:
                          epochs=1,
                          verbose=0,
                          batch_size=self.batch_size,
-                         callbacks=[self.tensorboard]
+
+                         # callbacks=[self.tensorboard]
                          )
 
     def train(self, agent, cube):
@@ -135,77 +136,84 @@ class Network:
         # Start looping through simulations
         simulation = 0
         while self.difficulty_level < 3:
-        # for simulation in range(1, num_of_sim):
-            # Reset cube before each simulation
-            cube.cube, cube.face = cube.reset_cube()
+            try:
+            # for simulation in range(1, num_of_sim):
+                # Reset cube before each simulation
+                cube.cube, cube.face = cube.reset_cube()
 
-            # Scramble the cube as many times as the scramble_limit
+                # Scramble the cube as many times as the scramble_limit
 
-            cube.scramble_cube(self.difficulty_level)
+                cube.scramble_cube(self.difficulty_level)
 
-            # cube.rotate_cube('F')
+                # cube.rotate_cube('F')
 
-            # After 10 simulations, pretraining is turned off
-            if simulation > 1000:
+                # After 10 simulations, pretraining is turned off
+                if simulation > 1000:
 
-                self.pretraining = False
+                    self.pretraining = False
 
-            for step in range(self.difficulty_level):
+                for step in range(self.difficulty_level):
 
-                # Get the state of the cube
-                state = copy.deepcopy(cube.cube)
-                # state = keras.utils.normalize(cube.cube, order=2)
+                    # Get the state of the cube
+                    state = copy.deepcopy(cube.cube)
+                    # state = keras.utils.normalize(cube.cube, order=2)
 
-                # Get an action from agent and execute it
-                actions = agent.action(state.reshape(1, 24), self.pretraining)
+                    # Get an action from agent and execute it
+                    actions = agent.action(state.reshape(1, 24), self.pretraining)
 
-                # Choose predicted action or explore.
-                if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
-                    self.epsilon_decay_steps += 1
-                    take_action = np.random.random_integers(0, 11, 1)
-                else:
-                    take_action = np.argmax(actions)
+                    # Choose predicted action or explore.
+                    if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
+                        self.epsilon_decay_steps += 1
+                        take_action = np.random.random_integers(0, 11, 1)
+                    else:
+                        take_action = np.argmax(actions)
 
-                # if not self.pretraining:
-                #     if cube.num_to_str[int(take_action)] == 'Fr' or cube.num_to_str[int(take_action)] == 'Br':
-                #         s = cube.num_to_str[int(take_action)]
-                #         print(s)
+                    # if not self.pretraining:
+                    #     if cube.num_to_str[int(take_action)] == 'Fr' or cube.num_to_str[int(take_action)] == 'Br':
+                    #         s = cube.num_to_str[int(take_action)]
+                    #         print(s)
 
-                # Execute action
-                next_state, face = cube.rotate_cube(take_action)
+                    # Execute action
+                    next_state, face = cube.rotate_cube(take_action)
 
-                # Calculate reward and find the next state
-                reward = agent.reward(next_state)
+                    # Calculate reward and find the next state
+                    reward = agent.reward(next_state)
 
-                # TODO Everything after reward is an attempt to add the future reward
-                target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
+                    # TODO Everything after reward is an attempt to add the future reward
+                    target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
 
-                # Append the result into the dataset
-                self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
+                    # Append the result into the dataset
+                    self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
 
-                # Go train, if pretraining is finished
+                    # Go train, if pretraining is finished
+                    if self.pretraining is False:
+                        self.go_to_gym()
+
+                    # Is the cube solved?
+                    if reward == 1:
+
+                        # Solved score from the last 80% of the simulation
+                        if simulation > simulation*0.8:
+                            solved_final += 1
+                        solved_rate.appendleft(1)
+                        break
+
+                # Increase the simulation counter
+                simulation += 1
+
+                # If the reward is zero here, it means the cube was not solved
+                if reward == 0:
+                    solved_rate.appendleft(0)
                 if self.pretraining is False:
-                    self.go_to_gym()
+                    self.check_progress(simulation, solved_rate)
+                else:
+                    self.check_progress(simulation, solved_rate)
 
-                # Is the cube solved?
-                if reward == 1:
-
-                    # Solved score from the last 80% of the simulation
-                    if simulation > simulation*0.8:
-                        solved_final += 1
-                    solved_rate.appendleft(1)
-                    break
-
-            simulation += 1
-            # self.epsilon *= self.epsilon_decay
-            # If the reward is zero here, it means the cube was not solved
-            if reward == 0:
-                solved_rate.appendleft(0)
-            if self.pretraining is False:
-                self.check_progress(simulation, solved_rate)
-            else:
-                self.check_progress(simulation, solved_rate)
-
+            except KeyboardInterrupt:
+                print("i was here")
+                keras.models.save_model(self.network,
+                                        f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
+                break
 
         print(f"Final difficulty level: {self.difficulty_level}")
         print(f" The best accuracy: {self.best_accuracy}")
@@ -295,6 +303,17 @@ class Network:
                     print("Increasing the number of scrambles by 1")
                     self.difficulty_level += 1
                     keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+
+def test(agent, cube):
+    """
+    Method for testing a trained model
+    :param agent:
+    :param cube:
+    :return:
+    """
+    keras.models.load_model(f"")
+
+
 
 def main():
     """
