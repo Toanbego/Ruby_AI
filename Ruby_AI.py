@@ -82,8 +82,7 @@ class Network:
         model.add(keras.layers.Dense(256, activation='relu',
                                      batch_size=self.batch_size))
         model.add(keras.layers.Dense(128, activation='relu'))
-        model.add(keras.layers.Dense(64, activation='relu'))
-
+        # model.add(keras.layers.Dense(64, activation='relu'))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
@@ -93,6 +92,8 @@ class Network:
         #               metrics=['accuracy'])
 
         model.compile(loss=keras.losses.categorical_crossentropy,
+                      lr=self.eta,
+                      decay=self.decay,
                       optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
 
@@ -133,7 +134,7 @@ class Network:
         :return:
         """
         # TODO Exploration er ett problem ser det ut til.
-        # TODO prioritized replay. Større sjangse for at en state med rewward blir valgt
+        # TODO prioritized replay. Større sjangse for at en state med reward blir valgt
 
         num_of_sim = config['simulation'].getint('num_of_sim')  # Fetch the amount of games
         max_steps = config['simulation'].getint('num_of_total_moves')  # Max amount of moves before "losing"
@@ -288,7 +289,9 @@ class Network:
             solved = (sum(solved_rate) / len(solved_rate))
             print(f"\033[93m"
                   f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \naccuracy: {round(solved, 2)}"
-                  f"\nExploration rate: {self.get_epsilon(self.epsilon_decay_steps)}\nScrambles {self.difficulty_level}"
+                  f"\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
+                  f"\nScrambles {self.difficulty_level}"
+                  f"\nBest accuracy: {self.best_accuracy}"
                   f"\n================================="
                   f"\033[0m")
             if solved > self.best_accuracy:
@@ -298,12 +301,16 @@ class Network:
             if round(solved, 2) == 1 and self.pretraining is False:
                 self.difficulty_counter += 1
                 if self.difficulty_counter > 4:
+
+                    self.difficulty_counter = 0
                     self.best_accuracy = 0
                     self.epsilon_decay_steps = 0
+
                     self.epsilon = config['network'].getfloat('epsilon')
                     print("Increasing the number of scrambles by 1")
                     self.difficulty_level += 1
-                    keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+                    if config['simulation'].getboolean('test') is not True:
+                        keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
     def test(self, agent, cube):
         """
