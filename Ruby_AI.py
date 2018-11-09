@@ -7,6 +7,7 @@ import random
 import time
 import math
 import copy
+import tensorflow as tf
 # import h5py
 
 from environment import Cube
@@ -78,10 +79,10 @@ class Network:
         model = keras.models.Sequential()
         # model.add(keras.utils.normalize(input))
 
-        model.add(keras.layers.Dense(1024, activation='relu',
+        model.add(keras.layers.Dense(256, activation='relu',
                                      batch_size=self.batch_size))
-        model.add(keras.layers.Dense(512, activation='relu'))
-        model.add(keras.layers.Dense(256, activation='relu'))
+        model.add(keras.layers.Dense(128, activation='relu'))
+        model.add(keras.layers.Dense(64, activation='relu'))
 
 
         model.add(keras.layers.Dense(12, activation='softmax'))
@@ -90,6 +91,7 @@ class Network:
         # model.compile(optimizer=adam,
         #               loss='mse',
         #               metrics=['accuracy'])
+
         model.compile(loss=keras.losses.categorical_crossentropy,
                       optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
@@ -145,9 +147,9 @@ class Network:
 
         # Start looping through simulations
         simulation = 0
-        try:
-            while self.difficulty_level < 3:
 
+        while self.difficulty_level:
+            try:
             # for simulation in range(1, num_of_sim):
                 # Reset cube before each simulation
                 cube.cube, cube.face = cube.reset_cube()
@@ -170,7 +172,7 @@ class Network:
                     # state = keras.utils.normalize(cube.cube, order=2)
 
                     # Get an action from agent and execute it
-                    actions = agent.action(state.reshape(1, 24), self.pretraining)
+                    actions = agent.action(state.reshape(1, 24), self.network)
 
                     # Choose predicted action or explore.
                     if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
@@ -178,11 +180,6 @@ class Network:
                         take_action = np.random.random_integers(0, 11, 1)
                     else:
                         take_action = np.argmax(actions)
-
-                    # if not self.pretraining:
-                    #     if cube.num_to_str[int(take_action)] == 'Fr' or cube.num_to_str[int(take_action)] == 'Br':
-                    #         s = cube.num_to_str[int(take_action)]
-                    #         print(s)
 
                     # Execute action
                     next_state, face = cube.rotate_cube(take_action)
@@ -220,11 +217,10 @@ class Network:
                 else:
                     self.check_progress(simulation, solved_rate)
 
-        except Exception as e:
-            print(e)
-            print("i was here")
-            keras.models.save_model(self.network,
-                                    f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
+            except KeyboardInterrupt:
+                print("i was here")
+                keras.models.save_model(self.network,
+                                        f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
 
 
         print(f"Final difficulty level: {self.difficulty_level}")
@@ -239,7 +235,7 @@ class Network:
         :return:
         """
         if self.difficulty_level > 0:
-            target = reward + self.gamma * np.max(agent.action(next_state.reshape(1, 24), self.pretraining))
+            target = reward + self.gamma * np.max(agent.action(next_state.reshape(1, 24), self.network))
         else:
             target = reward
         target_vector = actions.copy()
@@ -309,7 +305,7 @@ class Network:
                     self.difficulty_level += 1
                     keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
-    def test(self, cube):
+    def test(self, agent, cube):
         """
         Method for testing a trained model
         :param agent:
@@ -317,7 +313,6 @@ class Network:
         :return:
         """
         self.network = self.load_network()
-        agent = Solver(cube, self.network)
         solved_rate = deque(maxlen=40)
         solved_final = 0
         self.best_accuracy = 0.0
@@ -329,13 +324,12 @@ class Network:
         simulation = 0
         while self.difficulty_level < 3:
             try:
-                # for simulation in range(1, num_of_sim):
                 # Reset cube before each simulation
                 cube.cube, cube.face = cube.reset_cube()
 
                 # Scramble the cube as many times as the scramble_limit
 
-                cube.scramble_cube(self.difficulty_level)
+                cube.scramble_cube(1)
 
                 # cube.rotate_cube('F')
 
@@ -350,19 +344,10 @@ class Network:
                     # state = keras.utils.normalize(cube.cube, order=2)
 
                     # Get an action from agent and execute it
-                    actions = agent.action(state.reshape(1, 24), self.pretraining)
+                    actions = agent.action(state.reshape(1, 24), self.network)
 
                     # Choose predicted action or explore.
-                    if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
-                        self.epsilon_decay_steps += 1
-                        take_action = np.random.random_integers(0, 11, 1)
-                    else:
-                        take_action = np.argmax(actions)
-
-                    # if not self.pretraining:
-                    #     if cube.num_to_str[int(take_action)] == 'Fr' or cube.num_to_str[int(take_action)] == 'Br':
-                    #         s = cube.num_to_str[int(take_action)]
-                    #         print(s)
+                    take_action = np.argmax(actions)
 
                     # Execute action
                     next_state, face = cube.rotate_cube(take_action)
@@ -370,15 +355,10 @@ class Network:
                     # Calculate reward and find the next state
                     reward = agent.reward(next_state)
 
-                    # TODO Everything after reward is an attempt to add the future reward
                     target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
 
                     # Append the result into the dataset
                     self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
-
-                    # Go train, if pretraining is finished
-                    if self.pretraining is False:
-                        self.go_to_gym()
 
                     # Is the cube solved?
                     if reward == 1:
@@ -411,7 +391,6 @@ class Network:
         print(f" The best accuracy: {self.best_accuracy}")
 
 
-
 def main():
     """
     Main function of the script
@@ -431,7 +410,7 @@ def main():
         model.train(agent, rubiks_cube)
 
     elif config['simulation'].getboolean('test'):
-        model.test(rubiks_cube)
+        model.test(agent, rubiks_cube)
 
 
 if __name__ == '__main__':

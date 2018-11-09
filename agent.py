@@ -24,10 +24,9 @@ class Solver:
         """
         self.end_state = state.cube
         self.action_space = state.action_space
-        self.network = network
 
 
-    def action(self, cube, pretraining=False):
+    def action(self, cube, network):
         """
         Perform an action on the rubik's cube environment according to a given
         policy
@@ -35,8 +34,8 @@ class Solver:
         :param pretraining:
         :return:
         """
-        return self.network.predict(cube)
-        # cube, _ = cube.rotate_cube(np.argmax(actions))
+        return network.predict(cube)
+
 
     def reward(self, state=None):
         """
