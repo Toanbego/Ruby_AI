@@ -60,6 +60,7 @@ class Network:
         self.memory = deque(maxlen=5000)
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.difficulty_level = 1
+        self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", write_graph=True, update_freq=50)
 
         # Initialize network
         self.network = self.model_reinforcement()
@@ -107,7 +108,9 @@ class Network:
         self.network.fit(x=states, y=rewards,
                          epochs=1,
                          verbose=0,
-                         batch_size=self.batch_size)
+                         batch_size=self.batch_size,
+                         callbacks=[self.tensorboard]
+                         )
 
     def train(self, agent, cube):
         """
