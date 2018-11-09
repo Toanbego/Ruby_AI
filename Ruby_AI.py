@@ -74,18 +74,24 @@ class Network:
 
         model = keras.models.Sequential()
         # model.add(keras.utils.normalize(input))
-        model.add(keras.layers.Dense(1024, activation='relu',
+        model.add(keras.layers.Dense(4096, activation='elu',
                                      batch_size=self.batch_size,
                                      input_dim=24))
-        model.add(keras.layers.Dense(512, activation='relu'))
-        model.add(keras.layers.Dense(256, activation='relu'))
+        model.add(keras.layers.Dense(2048, activation='elu'))
+        # model.add(keras.layers.Dropout(0.5))
+        model.add(keras.layers.Dense(512, activation='elu'))
+    
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
-        adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
-        model.compile(optimizer=adam,
-                      loss='mse',
+        # adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
+        # model.compile(optimizer=adam,
+        #               loss='mse',
+        #               metrics=['accuracy'])
+        model.compile(loss=keras.losses.categorical_crossentropy,
+                      optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
+
         return model
 
     def go_to_gym(self):
@@ -127,7 +133,7 @@ class Network:
         solved_rate = deque(maxlen=40)
         solved_final = 0
         self.best_accuracy = 0.0
-        difficulty_level = 1
+
 
         # Start looping through simulations
         for simulation in range(1, num_of_sim):
@@ -135,15 +141,17 @@ class Network:
             cube.cube, cube.face = cube.reset_cube()
 
             # Scramble the cube as many times as the scramble_limit
-            cube.cube, actions = cube.scramble_cube(difficulty_level)
+            cube.cube, actions = cube.scramble_cube(self.difficulty_level)
 
-            # After 10 simulations, pretraining is turned off
+            # After 100 simulations, pretraining is turned off
             if simulation > 100:
                 self.pretraining = False
 
             for step in range(max_steps):
+
                 # Get the state of the cube
                 state = cube.cube
+                # state = keras.utils.normalize(cube.cube, order=2)
 
                 # Get an action from agent and execute it
                 q_values = agent.action(state.reshape(1, 24), self.pretraining)
@@ -153,9 +161,13 @@ class Network:
                     take_action = np.random.random_integers(0, 11, 1)
                 else:
                     take_action = np.argmax(q_values)
+                # print(take_action)
+
+
 
                 # Execute action
                 cube.rotate_cube(take_action)
+
 
                 # Calculate reward and find the next state
                 next_state = cube.cube
@@ -190,7 +202,7 @@ class Network:
                 self.check_progress(simulation, solved_rate)
 
 
-        print(f"Final difficulty level: {difficulty_level}")
+        print(f"Final difficulty level: {self.difficulty_level}")
         print(f" The best accuracy: {self.best_accuracy}")
         # print(f"How many solved of the last 80% of simulation: {solved_final/(simulation*0.8)}")
         print(solved_final)
@@ -239,6 +251,7 @@ class Network:
                 print("Increasing the number of scrambles by 1")
                 self.difficulty_level += 1
                 keras.models.save_model(self.network, f"models/solves_one_scramble - {time.time()}.h5")
+
 
 
 
