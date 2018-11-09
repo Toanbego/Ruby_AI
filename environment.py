@@ -162,7 +162,7 @@ class Cube:
         if render_image:
             make_plot(self.cube, numeric)
 
-        return self.cube
+        return self.cube, face
 
     def reset_cube(self):
         """
