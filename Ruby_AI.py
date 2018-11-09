@@ -64,8 +64,10 @@ class Network:
         self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
 
         # Initialize network
-
-        self.network = self.model_reinforcement()
+        if config['network'].getboolean('load_weights') is True:
+            self.network = self.load_network()
+        else:
+            self.network = self.model_reinforcement()
 
 
     def model_reinforcement(self, input=None):
@@ -82,7 +84,7 @@ class Network:
         model.add(keras.layers.Dense(256, activation='relu',
                                      batch_size=self.batch_size))
         model.add(keras.layers.Dense(128, activation='relu'))
-        # model.add(keras.layers.Dense(64, activation='relu'))
+        model.add(keras.layers.Dense(64, activation='relu'))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
@@ -128,7 +130,7 @@ class Network:
         Loads a pretrained network
         :return:
         """
-        model_path = config['simulation']['load_model']
+        model_path = config['network']['load_model']
         return keras.models.load_model(model_path)
 
     def train(self, agent, cube):
