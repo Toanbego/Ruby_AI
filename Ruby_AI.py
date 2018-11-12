@@ -7,12 +7,12 @@ import random
 import time
 import math
 import copy
-import tensorflow as tf
+
 # import h5py
 
 from environment import Cube
 from agent import Solver
-from data import read_data_set
+
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -81,7 +81,7 @@ class Network:
         model = keras.models.Sequential()
         # model.add(keras.utils.normalize(input))
 
-        model.add(keras.layers.Dense(256, activation='relu',
+        model.add(keras.layers.Dense(256, activation='relu', 
                                      batch_size=self.batch_size))
         model.add(keras.layers.Dense(128, activation='relu'))
         model.add(keras.layers.Dense(64, activation='relu'))
@@ -94,8 +94,7 @@ class Network:
         #               metrics=['accuracy'])
 
         model.compile(loss=keras.losses.categorical_crossentropy,
-                      lr=self.eta,
-                      decay=self.decay,
+                      # lr=self.eta,
                       optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
 
@@ -168,7 +167,7 @@ class Network:
 
                 # cube.rotate_cube('F')
 
-                # After 10 simulations, pretraining is turned off
+                # After 1000 simulations, pretraining is turned off
                 if simulation > 1000:
 
                     self.pretraining = False
@@ -199,8 +198,10 @@ class Network:
                     target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
 
                     # Append the result into the dataset
+                    # if step > 0 and np.random.random() > 0.8:
+                    #     self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
+                    # elif step == 0:
                     self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
-
                     # Go train, if pretraining is finished
                     if self.pretraining is False:
                         self.go_to_gym()
@@ -226,10 +227,9 @@ class Network:
                     self.check_progress(simulation, solved_rate)
 
             except KeyboardInterrupt:
-                print("i was here")
                 keras.models.save_model(self.network,
                                         f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
-
+                break
 
         print(f"Final difficulty level: {self.difficulty_level}")
         print(f" The best accuracy: {self.best_accuracy}")
@@ -298,7 +298,7 @@ class Network:
                   f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \naccuracy: {round(solved, 2)}"
                   f"\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
                   f"\nScrambles {self.difficulty_level}"
-                  f"\nBest accuracy: {self.best_accuracy}"
+                  f"\nBest accuracy: {self.best_accuracy}, reached 100% {self.difficulty_counter} times"
                   f"\n================================="
                   f"\033[0m")
             if solved > self.best_accuracy:
@@ -307,7 +307,7 @@ class Network:
             # Saves the model if the model is deemed good enough
             if round(solved, 2) == 1 and self.pretraining is False:
                 self.difficulty_counter += 1
-                if self.difficulty_counter > 4:
+                if self.difficulty_counter > 7:
 
                     self.difficulty_counter = 0
                     self.best_accuracy = 0
@@ -405,7 +405,6 @@ class Network:
         print(f" The best accuracy: {self.best_accuracy}")
 
 
-
 def main():
     """
     Main function of the script
@@ -418,7 +417,7 @@ def main():
     model = Network(rubiks_cube.cube)
 
     # Set up agent
-    agent = Solver(rubiks_cube, model.network)
+    agent = Solver(rubiks_cube)
 
     # Start training
     if config['simulation'].getboolean('train'):

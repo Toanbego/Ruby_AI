@@ -2,13 +2,8 @@
 This is the agent.
 """
 import environment
-
-import time
-import pandas as pd
-import argparse
-import keras
 import numpy as np
-import random
+
 
 
 class Solver:
@@ -17,7 +12,7 @@ class Solver:
     the Rubik's cube environment in environment.py
     """
 
-    def __init__(self, state, network):
+    def __init__(self, state):
         """
         Initialize attributes for class
         :param state: Should be before any movement is done
