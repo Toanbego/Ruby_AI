@@ -81,10 +81,10 @@ class Network:
         model = keras.models.Sequential()
         # model.add(keras.utils.normalize(input))
 
-        model.add(keras.layers.Dense(256, activation='relu', 
+        model.add(keras.layers.Dense(512, activation='relu',
                                      batch_size=self.batch_size))
+        model.add(keras.layers.Dense(256, activation='relu'))
         model.add(keras.layers.Dense(128, activation='relu'))
-        model.add(keras.layers.Dense(64, activation='relu'))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
