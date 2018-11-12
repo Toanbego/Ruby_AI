@@ -305,7 +305,7 @@ class Network:
                 self.best_accuracy = solved
 
             # Saves the model if the model is deemed good enough
-            if round(solved, 2) == 1 and self.pretraining is False:
+            if round(solved, 2) > 0.3 and self.pretraining is False:
                 self.difficulty_counter += 1
                 if self.difficulty_counter > 4:
 
@@ -336,14 +336,14 @@ class Network:
 
         # Start looping through simulations
         simulation = 0
-        while self.difficulty_level < 3:
+        while self.difficulty_level < 5:
             try:
                 # Reset cube before each simulation
                 cube.cube, cube.face = cube.reset_cube()
 
                 # Scramble the cube as many times as the scramble_limit
 
-                cube.scramble_cube(1)
+                cube.scramble_cube(self.difficulty_level)
 
                 # cube.rotate_cube('F')
 
@@ -371,8 +371,8 @@ class Network:
 
                     target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
 
-                    # Append the result into the dataset
-                    self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
+                    # # Append the result into the dataset
+                    # self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
 
                     # Is the cube solved?
                     if reward == 1:
@@ -391,6 +391,7 @@ class Network:
                     solved_rate.appendleft(0)
                 if self.pretraining is False:
                     self.check_progress(simulation, solved_rate)
+
                 else:
                     self.check_progress(simulation, solved_rate)
 
