@@ -3,6 +3,10 @@ This is the agent.
 """
 import environment
 import numpy as np
+import configparser
+
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 
 

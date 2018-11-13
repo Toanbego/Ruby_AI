@@ -5,6 +5,7 @@ This is the environment script for the agent.
 import numpy as np
 from color_cube import make_plot
 import configparser
+import  random
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -173,6 +174,8 @@ class Cube:
         if config['environment'].getboolean('numeric_representation'):
             cube = np.zeros(self.cube_size, dtype=int)
             colors = [1, 5, 3, 0, 2, 4]
+            if config['environment'].getboolean('random_sides') is True:
+                random.shuffle(colors)
         else:
             cube = np.zeros(self.cube_size, dtype=str)
             colors = ['g', 'y', 'o', 'w', 'b', 'r']
@@ -193,7 +196,9 @@ class Cube:
         store_action = []  # List to store the actions
 
         # Randomly choose actions from the action space
-        action = np.random.choice(self.action_space.flatten(), size=k)
+
+        action = np.random.choice(range(0, 12), size=k)
+
 
         # Loop through actions and move the cube
 
