@@ -62,6 +62,8 @@ class Network:
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.difficulty_level = 1
         self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
+        self.difficulty_level_increment = 1
+        self.check_action = deque(maxlen=200)
 
         # Initialize network
         if config['network'].getboolean('load_weights') is True:
@@ -359,9 +361,11 @@ class Network:
 
                     # Get an action from agent and execute it
                     actions = agent.action(state.reshape(1, 24), self.network)
+                    self.check_action.append(actions)
 
                     # Choose predicted action or explore.
                     take_action = np.argmax(actions)
+
 
                     # Execute action
                     next_state, face = cube.rotate_cube(take_action)
@@ -376,9 +380,13 @@ class Network:
 
                     # Is the cube solved?
                     if reward == 1:
+                        if self.difficulty_level > self.difficulty_level_increment:
+                            self.difficulty_level_increment = self.difficulty_level
+                            # print(f'Q values pre reward == 1:\n{actions}\nQ values post reward == 1:\n{target_vector}')
+                            print(f'Q delta values:\n{target_vector - actions}\n')
 
                         # Solved score from the last 80% of the simulation
-                        if simulation > simulation * 0.8:
+                        elif simulation > simulation * 0.8:
                             solved_final += 1
                         solved_rate.appendleft(1)
                         break
