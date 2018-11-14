@@ -10,8 +10,8 @@ import time
 import math
 import copy
 import re
-
-# import h5py
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 
 from environment import Cube
 from agent import Solver
@@ -54,25 +54,35 @@ class Network:
     """
     def __init__(self, cube):
         self.cube = cube
+
+        # Network parameters
         self.eta = config['network'].getfloat('learning_rate')  # Learning rate
         self.gamma = config['network'].getfloat('discount_rate')  # Discount rate
-        self.decay = 0.995
+        self.decay = config['network'].getfloat('learning_decay')
         self.epsilon = config['network'].getfloat('epsilon')
         self.epsilon_min = config['network'].getfloat('epsilon_min')
         self.epsilon_decay = config['network'].getfloat('epsilon_decay')
         self.batch_size = config['network'].getint('batch_size')
-        self.memory = deque(maxlen=1001)
         self.pretraining = config['simulation'].getboolean('pretraining')
-        self.epoch = config['model'].getint('epoch')
+        self.epoch = config['network'].getint('epoch')
+        self.threshold = 10
 
         self.load_weights = config['network'].getboolean('load_weights')
         self.load_model_path = config['network']['load_model']
 
+        # Simulation
+        self.solved = 1
+        self.epsilon_decay_steps = 0
+        self.simulations_this_scrambles = 0
+        self.memory = deque(maxlen=1001)
         self.difficulty_level = 1
         self.best_accuracy = 0.0
         self.difficulty_counter = 0
+        self.accuracy_points = []
+        self.axis = []
+        self.plot_progress = config['simulation'].getboolean('show_plot')
 
-        self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
+        # self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
 
         # Initialize network
         if self.load_weights is True:
@@ -90,20 +100,24 @@ class Network:
         """
 
         model = keras.models.Sequential()
-
-        model.add(keras.layers.Dense(512, activation='relu',
+        # model.add(keras.layers.Conv2D)
+        # model.add(keras.layers.Flatten)
+        model.add(keras.layers.Dense(256, #activation='relu',
                                      batch_size=self.batch_size))
-        # model.add(keras.layers.Dropout(0.05))
+        model.add(keras.layers.LeakyReLU(alpha=0.3))
 
-        model.add(keras.layers.Dense(256, activation='relu'))
-        # model.add(keras.layers.Dropout(0.05))
+        model.add(keras.layers.Dense(256, #activation='relu'
+                                     ))
+        model.add(keras.layers.LeakyReLU(alpha=0.3))
 
-        model.add(keras.layers.Dense(128, activation='relu'))
+        model.add(keras.layers.Dense(256, #activation='relu'
+                                     ))
+        model.add(keras.layers.LeakyReLU(alpha=0.3))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
-        model.compile(loss=keras.losses.mse,
-                      lr=self.eta,
+        model.compile(loss=keras.losses.categorical_crossentropy,
+                      # lr=self.eta,
                       # decay=self.decay,
                       optimizer=keras.optimizers.adadelta(),
                       metrics=['accuracy'])
@@ -141,26 +155,17 @@ class Network:
         :return:
         """
 
-        num_of_sim = config['simulation'].getint('num_of_sim')  # Fetch the amount of games
-        max_steps = config['simulation'].getint('num_of_total_moves')  # Max amount of moves before "losing"
-
         solved_rate = deque(maxlen=40)
-        solved_final = 0
 
         # Check the last difficulty level if loading weights
         if self.load_weights is True:
             self.difficulty_level = int(re.search('_(\d)_', self.load_model_path)[0].strip('_'))
-        else:
-            self.difficulty_level = 1
 
-        self.epsilon_decay_steps = 0
-
-        # Start looping through simulations
         simulation = 0
-        try:
-            while self.difficulty_level:
 
-            # for simulation in range(1, num_of_sim):
+        while self.difficulty_level:
+                try:
+                    memory_temp = deque(maxlen=self.difficulty_level)
                     # Reset cube before each simulation
                     cube.cube, cube.face = cube.reset_cube()
 
@@ -168,14 +173,14 @@ class Network:
                     _, self.scramble_actions = cube.scramble_cube(self.difficulty_level)
 
                     # After 1000 simulations, pretraining is turned off
-                    if len(self.memory) >= 1000:
+                    if len(self.memory) >= self.batch_size:
                         self.pretraining = False
 
                     for step in range(self.difficulty_level):
 
                         # Get the state of the cube
                         state = copy.deepcopy(cube.cube)
-                        # state = keras.utils.normalize(copy.deepcopy(cube.cube), order=2)
+
 
                         # Take in state and predict the reward for all possible actions
                         actions = agent.action(state.reshape(1, 24), self.network)
@@ -188,57 +193,64 @@ class Network:
                             take_action = np.argmax(actions)
 
                         # Execute action
-                        next_state, face = cube.rotate_cube(take_action)
+                        next_state, face = cube.rotate_cube(take_action, render_image=False)
 
                         # Calculate reward and find the next state
                         reward = agent.reward(next_state)
 
-                        # TODO Everything after reward is an attempt to add the future reward
-                        target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, step, cube)
-
                         # Append the result into the dataset
-                        # if step > 0 and np.random.random() > 0.8:
-                        #     self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
+                        # if step > 0 and np.random.random() > 0.98:
+                        #     memory_temp.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
                         # elif step == 0:
-                        self.memory.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
+                        memory_temp.appendleft((state.reshape(1, 24), actions, reward, next_state))
 
-                        for train in range(15):
-                            # Go train, if pretraining is finished
+                        # Go train, if pretraining is finished
+                        for train in range(self.epoch):
                             if self.pretraining is False:
                                 self.go_to_gym()
 
                         # Is the cube solved?
-                        if reward == 1:
+                        if reward == self.solved:
 
-                            # Solved score from the last 80% of the simulation
-                            if simulation > simulation*0.8:
-                                solved_final += 1
                             solved_rate.appendleft(1)
                             break
 
                     # Increase the simulation counter
                     simulation += 1
-
+                    self.simulations_this_scrambles +=1
                     # If the reward is zero here, it means the cube was not solved
-                    if reward == 0:
+                    if reward != self.solved:
                         solved_rate.appendleft(0)
+                    self.add_to_memory(agent, memory_temp)
+                    # Print out the current progress
                     if self.pretraining is False:
                         self.check_progress(simulation, solved_rate)
                     else:
                         self.check_progress(simulation, solved_rate)
 
-        except KeyboardInterrupt:
-            print("Stop training and save model")
-        finally:
-            print("i was here")
+                except KeyboardInterrupt:
+                    keras.models.save_model(self.network,
+                                            f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
+                    break
 
+    def add_to_memory(self, agent, memory_temp):
+        """
+        Adds memory_tempt to memory and corrects the target vector.
+        :param memory_temp:
+        :return:
+        """
+        for state, actions, reward, next_state in memory_temp:
+            take_action = np.argmax(actions)
+            if memory_temp[-1][2] > 1:
+                end_reward = memory_temp[-1][2][-1]
+            else:
+                end_reward = memory_temp[-1][2]
+            # Create the target from the reward and predicted reward
+            target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, end_reward)
+            # Append to memory
+            self.memory.appendleft((state, actions, target_vector, next_state))
 
-
-
-        print(f"Final difficulty level: {self.difficulty_level}")
-        print(f" The best accuracy: {self.best_accuracy}")
-
-    def create_target_vector(self, agent, next_state, reward, actions, take_action, step, cube):
+    def create_target_vector(self, agent, next_state, reward, actions, take_action, end_reward):
         """
         Creates the target vector used as label in the training.
         Will also look at future rewards with a discount factor
@@ -246,17 +258,18 @@ class Network:
         :param actions:
         :return:
         """
-
-        check_future = agent.action(next_state.reshape(1, 24), self.network)
-
-        if np.max(check_future) > 0.9:
+        # if np.max(check_future) > 0.7 and step < self.difficulty_level-1:
+        if end_reward == 1:
+            check_future = agent.action(next_state.reshape(1, 24), self.network)
             target = reward + self.gamma*np.argmax(check_future)
-
         else:
             target = reward
-        target_vector = actions.copy()
-        target_vector[0][take_action] = target
-        return target_vector
+
+        # target_vector = actions.copy()
+        # target_vector[0][take_action] = target
+        # return target_vector
+        actions[0][take_action] = target
+        return actions
 
     def sample_memory(self):
         """
@@ -267,7 +280,6 @@ class Network:
         """
         # Sample a batch of data from memory
         mini_batch = random.sample(self.memory, self.batch_size)
-        # mini_batch = collections.deque(itertools.islice(self.memory, 0, self.batch_size))
 
         # Append the state and target from the data
         x_batch, y_batch = [], []
@@ -281,15 +293,30 @@ class Network:
 
     def get_epsilon(self, decay_steps):
         """
-        Returns the e - greedy
-        :param simulation:
+        Returns the e - greedy based on how many simulations that has been run for this
+        amount of scrambles
+        :param decay_steps: THe number of simulations used for these scrambles.
         :return:
         """
-        # return max(self.epsilon_min, self.epsilon)
         if self.pretraining is False:
             return max(self.epsilon_min, min(self.epsilon, 1.0 - math.log10((decay_steps + 1) * self.epsilon_decay)))
         else:
             return 1
+
+    def plot_accuracy(self, simulation, solved, solved_rate):
+        """
+        Plots the accuracy of the cubes
+        :return:
+        """
+        # Plot the accuracy
+
+        if simulation % len(solved_rate) * 10 == 0:
+            self.axis.append(simulation)
+            self.accuracy_points.append(solved)
+            plt.plot(self.axis, self.accuracy_points, color='r', label='Accuracy')
+            plt.xlabel('Simulations')
+            plt.ylabel('Solved cubes')
+            plt.pause(0.001)
 
     def check_progress(self, simulation, solved_rate):
         """
@@ -304,29 +331,41 @@ class Network:
         if simulation % len(solved_rate) == 0:
             solved = (sum(solved_rate) / len(solved_rate))
 
+            # Print the current progress
             print(f"\033[93m"     
-                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \naccuracy: {round(solved, 2)}"
-                  f"\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
-                  f"\nScrambles {self.difficulty_level}"
+                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \n\033[35mAccuracy: {round(solved, 2)}\033[0m"
+                  f"\033[93m\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
+                  f"\nScrambles: {self.difficulty_level}"
                   f"\nBest accuracy: {self.best_accuracy}, reached 100% {self.difficulty_counter} times"
-                  f"\n================================="
+                  f"\n\033[93m=================================\033[0m"
                   f"\033[0m")
+
+            # Update the best accuracy
             if solved > self.best_accuracy:
                 self.best_accuracy = solved
+
+            if self.plot_progress is True:
+                self.plot_accuracy(simulation, solved, solved_rate)
 
             # Saves the model if the model is deemed good enough
             if round(solved, 2) == 1 and self.pretraining is False:
                 self.difficulty_counter += 1
-                if self.difficulty_counter > 7:
+
+                if self.difficulty_counter > self.threshold:
+
+                    # Increment difficulty level
+                    self.epsilon = config['network'].getfloat('epsilon')
+
+                    print(f"\033[91mLearned from {self.simulations_this_scrambles} cubes with {self.difficulty_level} "
+                          f"scrambles"
+                          f"\nIncreasing the number of scrambles by 1\033[0m"
+                          f"\n\033[93m=================================\033[0m")
 
                     # Reset variables
                     self.difficulty_counter = 0
                     self.best_accuracy = 0
-                    self.epsilon_decay_steps = 0
+                    self.simulations_this_scramble = 0
 
-                    # Increment d
-                    self.epsilon = config['network'].getfloat('epsilon')
-                    print("Increasing the number of scrambles by 1")
                     self.difficulty_level += 1
                     if config['simulation'].getboolean('test') is not True:
                         keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
@@ -340,78 +379,61 @@ class Network:
         """
         self.network = self.load_network()
         solved_rate = deque(maxlen=40)
-        solved_final = 0
         self.best_accuracy = 0.0
         self.difficulty_counter = 0
-        self.difficulty_level = 1
         self.epsilon_decay_steps = 0
-        self.action_stat = np.zeros(12, dtype=int)
         # Start looping through simulations
         simulation = 0
-        while self.difficulty_level < 3:
+        self.pretraining = False
+        while True:
 
-            try:
-                # Reset cube before each simulation
-                cube.cube, cube.face = cube.reset_cube()
+        # try:
+            # Reset cube before each simulation
+            cube.cube, cube.face = cube.reset_cube()
 
-                # Scramble the cube as many times as the scramble_limit
-                _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=True)
+            # Scramble the cube as many times as the scramble_limit
+            _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=False)
 
-                for step in range(self.difficulty_level):
+            for step in range(self.difficulty_level):
 
-                    # Get the state of the cube
-                    state = copy.deepcopy(cube.cube)
-                    # state = keras.utils.normalize(cube.cube, order=2)
+                # Get the state of the cube
+                state = copy.deepcopy(cube.cube)
+                # state = keras.utils.normalize(cube.cube, order=2)
 
-                    # Get an action from agent and execute it
-                    actions = agent.action(state.reshape(1, 24), self.network)
+                # Get an action from agent and execute it
+                actions = agent.action(state.reshape(1, 24), self.network)
 
-                    # Choose predicted action or explore.
-                    take_action = np.argmax(actions)
+                # Choose predicted action or explore.
+                take_action = np.argmax(actions)
 
-                    # Execute action
-                    next_state, face = cube.rotate_cube(take_action, render_image=True)
+                # Execute action
+                next_state, face = cube.rotate_cube(take_action, render_image=False)
 
-                    # Calculate reward and find the next state
-                    reward = agent.reward(next_state)
+                # Calculate reward and find the next state
+                reward = agent.reward(next_state)
 
-                    target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action)
+                target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, step, cube)
 
-                    # Statistics
-                    self.action_stat[take_action] += 1
-                    if simulation % 100 == 0:
-                        print(self.action_stat)
-                        self.action_stat = np.zeros(12, dtype=int)
+                # Is the cube solved?
+                if reward == 1:
+                    solved_rate.appendleft(1)
+                    break
 
-                    # Is the cube solved?
-                    if reward == 1:
+            # Increase the simulation counter
+            simulation += 1
 
-                        # Solved score from the last 80% of the simulation
-                        if simulation > simulation * 0.8:
-                            solved_final += 1
-                        solved_rate.appendleft(1)
-                        break
+            # If the reward is zero here, it means the cube was not solved
+            if reward == 0:
+                solved_rate.appendleft(0)
 
-                # Increase the simulation counter
-                simulation += 1
+            self.check_progress(simulation, solved_rate)
 
-                # If the reward is zero here, it means the cube was not solved
-                if reward == 0:
-                    solved_rate.appendleft(0)
-                if self.pretraining is False:
-                    self.check_progress(simulation, solved_rate)
-                else:
-                    self.check_progress(simulation, solved_rate)
-
-            except Exception as e:
-                print(e)
-                print("i was here")
-                keras.models.save_model(self.network,
-                                        f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
-                break
-
-        print(f"Final difficulty level: {self.difficulty_level}")
-        print(f" The best accuracy: {self.best_accuracy}")
+            # except Exception as e:
+            #     print(e)
+            #     print("i was here")
+            #     keras.models.save_model(self.network,
+            #                             f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
+            #     break
 
 
 def main():
@@ -432,6 +454,7 @@ def main():
     if config['simulation'].getboolean('train'):
         model.train(agent, rubiks_cube)
 
+    # Start testing
     elif config['simulation'].getboolean('test'):
         model.test(agent, rubiks_cube)
 

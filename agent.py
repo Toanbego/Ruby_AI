@@ -44,6 +44,7 @@ class Solver:
         :return:
         """
         reward_check = [len(np.unique(element)) for element in state]
+
         if sum(reward_check) == 6:
             return 1
         else:
