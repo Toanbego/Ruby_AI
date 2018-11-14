@@ -57,6 +57,8 @@ class Network:
         self.cube = cube
 
         # Network parameters
+        self.input_shape = tuple([int(s) for s in config['network']['input_shape'].split(',')])
+        self.choose_net = config['network']['net']
         self.eta = config['network'].getfloat('learning_rate')  # Learning rate
         self.gamma = config['network'].getfloat('discount_rate')  # Discount rate
         self.decay = config['network'].getfloat('learning_decay')
@@ -84,20 +86,14 @@ class Network:
         self.axis = []
         self.plot_progress = config['simulation'].getboolean('show_plot')
 
-        # self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", update_freq=200)
-
         # Initialize network
         if self.load_weights is True:
             self.network = self.load_network()
         else:
-            self.choose_net = config['network']['net']
             if self.choose_net == 'fcn':
-                self.input_shape = (1, 24)
                 self.network = self.model_reinforcement()
             elif self.choose_net == 'conv':
-                self.input_shape = (1, 6, 2, 2)
                 self.network = self.model_conv()
-
 
     def model_reinforcement(self):
         """
@@ -135,14 +131,15 @@ class Network:
                 """
 
         model = keras.models.Sequential()
-        x = model.add(keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
-                                          batch_size=self.batch_size
+        model.add(keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+                                          batch_size=self.batch_size, padding='same'
                                           ))
-        model.add(keras.layers.Flatten(x))
-        model.add(keras.layers.Dense(64, activation='relu',
-                                     ))
+        model.add(keras.layers.Conv2D(64, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+                                      padding='same'
+                                      ))
 
-        model.add(keras.layers.Dense(128, activation='relu'
+        model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(64, activation='relu',
                                      ))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
@@ -189,10 +186,12 @@ class Network:
 
         # Check the last difficulty level if loading weights
         if self.load_weights is True:
+            # Find the difficulty level
             self.difficulty_level = int(re.search('_(\d)_', self.load_model_path)[0].strip('_'))
 
         simulation = 0
 
+        # Start episodes
         while self.difficulty_level:
                 try:
                     memory_temp = deque(maxlen=self.difficulty_level)
@@ -408,15 +407,23 @@ class Network:
         :return:
         """
         self.network = self.load_network()
+
         solved_rate = deque(maxlen=40)
         self.best_accuracy = 0.0
         self.difficulty_counter = 0
         self.epsilon_decay_steps = 0
-        # Start looping through simulations
+
         simulation = 0
         self.pretraining = False
-        while True:
 
+        # Choose network input shape
+        if self.choose_net == 'fcn':
+            self.input_shape = (1, 24)
+        elif self.choose_net == 'conv':
+            self.input_shape = (1, 6, 2, 2)
+
+        # Start looping through simulations
+        while True:
         # try:
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
