@@ -65,7 +65,7 @@ class Network:
         self.batch_size = config['network'].getint('batch_size')
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.epoch = config['network'].getint('epoch')
-        self.threshold = 10
+        self.threshold = config['network'].getint('threshold')
 
         self.load_weights = config['network'].getboolean('load_weights')
         self.load_model_path = config['network']['load_model']
@@ -102,17 +102,17 @@ class Network:
         model = keras.models.Sequential()
         # model.add(keras.layers.Conv2D)
         # model.add(keras.layers.Flatten)
-        model.add(keras.layers.Dense(256, #activation='relu',
+        model.add(keras.layers.Dense(256, activation='relu',
                                      batch_size=self.batch_size))
-        model.add(keras.layers.LeakyReLU(alpha=0.3))
+        # model.add(keras.layers.LeakyReLU(alpha=0.3))
 
-        model.add(keras.layers.Dense(256, #activation='relu'
+        model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-        model.add(keras.layers.LeakyReLU(alpha=0.3))
+        # model.add(keras.layers.LeakyReLU(alpha=0.3))
 
-        model.add(keras.layers.Dense(256, #activation='relu'
+        model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-        model.add(keras.layers.LeakyReLU(alpha=0.3))
+        # model.add(keras.layers.LeakyReLU(alpha=0.3))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
@@ -239,12 +239,13 @@ class Network:
         :param memory_temp:
         :return:
         """
+        if len(memory_temp) > 1:
+            end_reward = memory_temp[0][2]
+        else:
+            end_reward = memory_temp[0][2]
+
         for state, actions, reward, next_state in memory_temp:
             take_action = np.argmax(actions)
-            if memory_temp[-1][2] > 1:
-                end_reward = memory_temp[-1][2][-1]
-            else:
-                end_reward = memory_temp[-1][2]
             # Create the target from the reward and predicted reward
             target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, end_reward)
             # Append to memory
@@ -258,7 +259,6 @@ class Network:
         :param actions:
         :return:
         """
-        # if np.max(check_future) > 0.7 and step < self.difficulty_level-1:
         if end_reward == 1:
             check_future = agent.action(next_state.reshape(1, 24), self.network)
             target = reward + self.gamma*np.argmax(check_future)
@@ -314,6 +314,7 @@ class Network:
             self.axis.append(simulation)
             self.accuracy_points.append(solved)
             plt.plot(self.axis, self.accuracy_points, color='r', label='Accuracy')
+            plt.ylim((0, 1.3))
             plt.xlabel('Simulations')
             plt.ylabel('Solved cubes')
             plt.pause(0.001)
@@ -412,7 +413,7 @@ class Network:
                 # Calculate reward and find the next state
                 reward = agent.reward(next_state)
 
-                target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, step, cube)
+                # target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, step, cube)
 
                 # Is the cube solved?
                 if reward == 1:
