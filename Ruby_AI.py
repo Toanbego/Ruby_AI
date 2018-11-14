@@ -1,3 +1,4 @@
+import tensorflow as tf
 import keras
 import argparse
 import configparser
@@ -56,6 +57,7 @@ class Network:
         self.cube = cube
 
         # Network parameters
+        self.input_shape = map(int, config['network']['input_shape'].split(','))
         self.eta = config['network'].getfloat('learning_rate')  # Learning rate
         self.gamma = config['network'].getfloat('discount_rate')  # Discount rate
         self.decay = config['network'].getfloat('learning_decay')
@@ -67,6 +69,7 @@ class Network:
         self.epoch = config['network'].getint('epoch')
         self.threshold = config['network'].getint('threshold')
 
+        # Weights
         self.load_weights = config['network'].getboolean('load_weights')
         self.load_model_path = config['network']['load_model']
 
@@ -88,7 +91,11 @@ class Network:
         if self.load_weights is True:
             self.network = self.load_network()
         else:
-            self.network = self.model_reinforcement()
+            self.choose_net = config['network']['net']
+            if self.choose_net == 'fcn':
+                self.network = self.model_reinforcement()
+            elif self.choose_net == 'conv':
+                self.network = self.model_conv()
 
 
     def model_reinforcement(self, input=None):
@@ -100,29 +107,51 @@ class Network:
         """
 
         model = keras.models.Sequential()
-        # model.add(keras.layers.Conv2D)
-        # model.add(keras.layers.Flatten)
+
         model.add(keras.layers.Dense(256, activation='relu',
                                      batch_size=self.batch_size))
-        # model.add(keras.layers.LeakyReLU(alpha=0.3))
 
         model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-        # model.add(keras.layers.LeakyReLU(alpha=0.3))
 
         model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-        # model.add(keras.layers.LeakyReLU(alpha=0.3))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
-                      # lr=self.eta,
-                      # decay=self.decay,
                       optimizer=keras.optimizers.adadelta(),
                       metrics=['accuracy'])
 
         return model
+
+    def model_conv(self):
+        """
+                Creates a neural network that takes in a flatted 6x2x2 array and returns
+                the expected reward for a set of actions.
+                :param input:
+                :return:
+                """
+
+        model = keras.models.Sequential()
+        x = model.add(keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+                                          batch_size=self.batch_size
+                                          ))
+        model.add(keras.layers.Flatten(x))
+        model.add(keras.layers.Dense(64, activation='relu',
+                                     ))
+
+        model.add(keras.layers.Dense(128, activation='relu'
+                                     ))
+
+        model.add(keras.layers.Dense(12, activation='softmax'))
+
+        model.compile(loss=keras.losses.categorical_crossentropy,
+                      optimizer=keras.optimizers.adadelta(),
+                      metrics=['accuracy'])
+
+        return model
+
 
     def go_to_gym(self):
         """
@@ -170,7 +199,7 @@ class Network:
                     cube.cube, cube.face = cube.reset_cube()
 
                     # Scramble the cube as many times as the scramble_limit
-                    _, self.scramble_actions = cube.scramble_cube(self.difficulty_level)
+                    _, scramble_actions = cube.scramble_cube(self.difficulty_level)
 
                     # After 1000 simulations, pretraining is turned off
                     if len(self.memory) >= self.batch_size:
@@ -181,9 +210,8 @@ class Network:
                         # Get the state of the cube
                         state = copy.deepcopy(cube.cube)
 
-
                         # Take in state and predict the reward for all possible actions
-                        actions = agent.action(state.reshape(1, 24), self.network)
+                        actions = agent.action(state.reshape(1, 6, 2, 2), self.network)
 
                         # Either choose predicted action or explore depending on current epsilon value
                         if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
@@ -199,10 +227,7 @@ class Network:
                         reward = agent.reward(next_state)
 
                         # Append the result into the dataset
-                        # if step > 0 and np.random.random() > 0.98:
-                        #     memory_temp.appendleft((state.reshape(1, 24), actions, target_vector, next_state))
-                        # elif step == 0:
-                        memory_temp.appendleft((state.reshape(1, 24), actions, reward, next_state))
+                        memory_temp.appendleft((state.reshape(1, 6, 2, 2), actions, reward, next_state))
 
                         # Go train, if pretraining is finished
                         for train in range(self.epoch):
@@ -259,15 +284,15 @@ class Network:
         :param actions:
         :return:
         """
+        # If we know the final reward is 1, then the action yields a rewards as well
         if end_reward == 1:
-            check_future = agent.action(next_state.reshape(1, 24), self.network)
+            check_future = agent.action(next_state.reshape(1, 6, 2, 2), self.network)
             target = reward + self.gamma*np.argmax(check_future)
+
+        # If there is no reward in the end, then the current reward is 0
         else:
             target = reward
 
-        # target_vector = actions.copy()
-        # target_vector[0][take_action] = target
-        # return target_vector
         actions[0][take_action] = target
         return actions
 
@@ -287,7 +312,7 @@ class Network:
             x_batch.append(state), y_batch.append(target)
 
         # Reshape the data to match the batch size
-        states = np.array(x_batch).reshape(self.batch_size, 24)
+        states = np.array(x_batch).reshape(self.batch_size, 6, 2, 2)
         rewards = np.array(y_batch).reshape(self.batch_size, 12)
         return states, rewards
 
@@ -402,7 +427,7 @@ class Network:
                 # state = keras.utils.normalize(cube.cube, order=2)
 
                 # Get an action from agent and execute it
-                actions = agent.action(state.reshape(1, 24), self.network)
+                actions = agent.action(state.reshape(1, 6, 2, 2), self.network)
 
                 # Choose predicted action or explore.
                 take_action = np.argmax(actions)
