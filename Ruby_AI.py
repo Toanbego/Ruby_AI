@@ -57,7 +57,6 @@ class Network:
         self.cube = cube
 
         # Network parameters
-        self.input_shape = map(int, config['network']['input_shape'].split(','))
         self.eta = config['network'].getfloat('learning_rate')  # Learning rate
         self.gamma = config['network'].getfloat('discount_rate')  # Discount rate
         self.decay = config['network'].getfloat('learning_decay')
@@ -77,7 +76,7 @@ class Network:
         self.solved = 1
         self.epsilon_decay_steps = 0
         self.simulations_this_scrambles = 0
-        self.memory = deque(maxlen=1001)
+        self.memory = deque(maxlen=512)
         self.difficulty_level = 1
         self.best_accuracy = 0.0
         self.difficulty_counter = 0
@@ -93,12 +92,14 @@ class Network:
         else:
             self.choose_net = config['network']['net']
             if self.choose_net == 'fcn':
+                self.input_shape = (1, 24)
                 self.network = self.model_reinforcement()
             elif self.choose_net == 'conv':
+                self.input_shape = (1, 6, 2, 2)
                 self.network = self.model_conv()
 
 
-    def model_reinforcement(self, input=None):
+    def model_reinforcement(self):
         """
         Creates a neural network that takes in a flatted 6x2x2 array and returns
         the expected reward for a set of actions.
@@ -211,7 +212,7 @@ class Network:
                         state = copy.deepcopy(cube.cube)
 
                         # Take in state and predict the reward for all possible actions
-                        actions = agent.action(state.reshape(1, 6, 2, 2), self.network)
+                        actions = agent.action(state.reshape(self.input_shape), self.network)
 
                         # Either choose predicted action or explore depending on current epsilon value
                         if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
@@ -227,7 +228,7 @@ class Network:
                         reward = agent.reward(next_state)
 
                         # Append the result into the dataset
-                        memory_temp.appendleft((state.reshape(1, 6, 2, 2), actions, reward, next_state))
+                        memory_temp.appendleft((state.reshape(self.input_shape), actions, reward, next_state))
 
                         # Go train, if pretraining is finished
                         for train in range(self.epoch):
@@ -286,7 +287,7 @@ class Network:
         """
         # If we know the final reward is 1, then the action yields a rewards as well
         if end_reward == 1:
-            check_future = agent.action(next_state.reshape(1, 6, 2, 2), self.network)
+            check_future = agent.action(next_state.reshape(self.input_shape), self.network)
             target = reward + self.gamma*np.argmax(check_future)
 
         # If there is no reward in the end, then the current reward is 0
@@ -312,7 +313,10 @@ class Network:
             x_batch.append(state), y_batch.append(target)
 
         # Reshape the data to match the batch size
-        states = np.array(x_batch).reshape(self.batch_size, 6, 2, 2)
+        lst = list(self.input_shape)
+        lst[0] = self.batch_size
+        lst = tuple(lst)
+        states = np.array(x_batch).reshape(lst)
         rewards = np.array(y_batch).reshape(self.batch_size, 12)
         return states, rewards
 
@@ -427,7 +431,7 @@ class Network:
                 # state = keras.utils.normalize(cube.cube, order=2)
 
                 # Get an action from agent and execute it
-                actions = agent.action(state.reshape(1, 6, 2, 2), self.network)
+                actions = agent.action(state.reshape(self.input_shape), self.network)
 
                 # Choose predicted action or explore.
                 take_action = np.argmax(actions)
