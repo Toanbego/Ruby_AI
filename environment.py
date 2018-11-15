@@ -5,7 +5,7 @@ This is the environment script for the agent.
 import numpy as np
 from color_cube import make_plot
 import configparser
-import  random
+import random
 
 config = configparser.ConfigParser()
 config.read("config.ini")
