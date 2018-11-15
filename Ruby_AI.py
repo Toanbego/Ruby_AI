@@ -260,7 +260,7 @@ class Network:
                     # Increase the simulation counter
                     simulation += 1
                     self.simulations_this_scrambles +=1
-                    if simulation is 10000:
+                    if simulation % 100000 == 0:
                         keras.models.save_model(self.network,
                                                 f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
