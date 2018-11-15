@@ -243,6 +243,10 @@ class Network:
                     # Increase the simulation counter
                     simulation += 1
                     self.simulations_this_scrambles +=1
+                    if simulation is 10000:
+                        keras.models.save_model(self.network,
+                                                f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+
                     # If the reward is zero here, it means the cube was not solved
                     if reward != self.solved:
                         solved_rate.appendleft(0)
@@ -364,8 +368,8 @@ class Network:
             print(f"\033[93m"     
                   f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \n\033[35mAccuracy: {round(solved, 2)}\033[0m"
                   f"\033[93m\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
-                  f"\nScrambles: {self.difficulty_level}"
-                  f"\nBest accuracy: {self.best_accuracy}, reached 100% {self.difficulty_counter} times"
+                  f"\nScrambles: {self.difficulty_level} \n\033[32mNumber of simulations: {simulation}\033[0m"
+                  f"\n\033[93mBest accuracy: {self.best_accuracy}, reached 100% {self.difficulty_counter} times\033[0m"
                   f"\n\033[93m=================================\033[0m"
                   f"\033[0m")
 
