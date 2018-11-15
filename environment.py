@@ -199,10 +199,13 @@ class Cube:
 
         action = np.random.choice(range(0, 12), size=k)
 
-
         # Loop through actions and move the cube
-
         for a in action:
+            if config['environment'].getboolean('expand_training') is True:
+                if store_action != []:
+                    while a == store_action[-1]+6 or a == store_action[-1]-6:
+                        a = np.random.choice(range(0, 12), size=1)
+
             store_action.append(a)
             self.rotate_cube(a, render_image)
 

@@ -70,6 +70,7 @@ class Network:
         self.epoch = config['network'].getint('epoch')
         self.threshold = config['network'].getint('threshold')
         self.one_hot = config['network'].getboolean('one_hot_encoding')
+        self.evaluate = 0
 
 
         # Weights
@@ -77,16 +78,17 @@ class Network:
         self.load_model_path = config['network']['load_model']
 
         # Simulation
-        self.solved = 1
-        self.epsilon_decay_steps = 0
-        self.simulations_this_scrambles = 0
-        self.memory = deque(maxlen=512)
-        self.difficulty_level = 1
-        self.best_accuracy = 0.0
-        self.difficulty_counter = 0
-        self.accuracy_points = []
-        self.axis = []
-        self.plot_progress = config['simulation'].getboolean('show_plot')
+        self.done = 1                               # Checks if a cube is done
+        self.solved = 0                             # Calculates the current accuracy
+        self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
+        self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
+        self.memory = deque(maxlen=1000)            # Length of memory
+        self.difficulty_level = 1                   # The amount of scrambles
+        self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
+        self.difficulty_counter = 0                 # Current amount of scrambles
+        self.accuracy_points = []                   # Y-axis for plot
+        self.axis = []                              # X-axis for plot
+        self.plot_progress = config['simulation'].getboolean('show_plot')  # Plots the progress
 
         # Initialize network
         if self.load_weights is True:
@@ -250,7 +252,7 @@ class Network:
                                 self.go_to_gym()
 
                         # Is the cube solved?
-                        if reward == self.solved:
+                        if reward == self.done:
 
                             solved_rate.appendleft(1)
                             break
@@ -263,9 +265,10 @@ class Network:
                                                 f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
                     # If the reward is zero here, it means the cube was not solved
-                    if reward != self.solved:
+                    if reward != self.done:
                         solved_rate.appendleft(0)
                     self.add_to_memory(agent, memory_temp)
+
                     # Print out the current progress
                     if self.pretraining is False:
                         self.check_progress(simulation, solved_rate)
@@ -378,46 +381,57 @@ class Network:
         """
         # Calculate score
         if simulation % len(solved_rate) == 0:
-            solved = (sum(solved_rate) / len(solved_rate))
+            self.solved = (sum(solved_rate) / len(solved_rate))
 
             # Print the current progress
             print(f"\033[93m"     
-                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \n\033[35mAccuracy: {round(solved, 2)}\033[0m"
+                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)} \n\033[35mAccuracy: {round(self.solved, 2)}\033[0m"
                   f"\033[93m\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
-                  f"\nScrambles: {self.difficulty_level} \n\033[32mNumber of simulations: {simulation}\033[0m"
-                  f"\n\033[93mBest accuracy: {self.best_accuracy}, reached 100% {self.difficulty_counter} times\033[0m"
+                  f"\nScrambles: {self.difficulty_level} \n\033[35mNumber of simulations: {simulation}\033[0m"
+                  f"\n\033[93mBest accuracy: {round(self.best_accuracy, 3)}, reached 100% {self.difficulty_counter} times\033[0m"
                   f"\n\033[93m=================================\033[0m"
                   f"\033[0m")
 
             # Update the best accuracy
-            if solved > self.best_accuracy:
-                self.best_accuracy = solved
+            if self.solved > self.best_accuracy:
+                self.best_accuracy = self.solved
 
             if self.plot_progress is True:
-                self.plot_accuracy(simulation, solved, solved_rate)
+                self.plot_accuracy(simulation, self.solved, solved_rate)
 
-            # Saves the model if the model is deemed good enough
-            if round(solved, 2) == 1 and self.pretraining is False:
-                self.difficulty_counter += 1
+            # Evaluate the network
+            self.evaluate_network()
 
-                if self.difficulty_counter > self.threshold:
+    def evaluate_network(self):
+        """
+        Evaluates how well the network is performing over all
+        :return:
+        """
+        # Saves the model if the model is deemed good enough
+        if round(self.solved, 2) == 1 and self.pretraining is False:
+            self.difficulty_counter += 1
 
-                    # Increment difficulty level
-                    self.epsilon = config['network'].getfloat('epsilon')
+            if self.difficulty_counter>=self.threshold:
 
-                    print(f"\033[91mLearned from {self.simulations_this_scrambles} cubes with {self.difficulty_level} "
-                          f"scrambles"
-                          f"\nIncreasing the number of scrambles by 1\033[0m"
-                          f"\n\033[93m=================================\033[0m")
+                # Increment difficulty level
+                self.epsilon = config['network'].getfloat('epsilon')
 
-                    # Reset variables
-                    self.difficulty_counter = 0
-                    self.best_accuracy = 0
-                    self.simulations_this_scramble = 0
+                print(f"\033[91mLearned from {self.simulations_this_scrambles} cubes with {self.difficulty_level} "
+                      f"scrambles"
+                      f"\nIncreasing the number of scrambles by 1\033[0m"
+                      f"\n\033[93m=================================\033[0m")
 
-                    self.difficulty_level += 1
-                    if config['simulation'].getboolean('test') is not True:
-                        keras.models.save_model(self.network, f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+                # Reset variables
+                self.difficulty_counter = 0
+                self.best_accuracy = 0
+                self.simulations_this_scramble = 0
+
+                self.difficulty_level += 1
+                if config['simulation'].getboolean('test') is not True:
+                    keras.models.save_model(self.network,
+                                            f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+
+
 
     def test(self, agent, cube):
         """
