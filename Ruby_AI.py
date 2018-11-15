@@ -69,6 +69,8 @@ class Network:
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.epoch = config['network'].getint('epoch')
         self.threshold = config['network'].getint('threshold')
+        self.one_hot = config['network'].getboolean('one_hot_encoding')
+
 
         # Weights
         self.load_weights = config['network'].getboolean('load_weights')
@@ -95,6 +97,10 @@ class Network:
             elif self.choose_net == 'conv':
                 self.network = self.model_conv()
 
+        if self.one_hot:
+            self.input_shape = 1, 144
+
+
     def model_reinforcement(self):
         """
         Creates a neural network that takes in a flatted 6x2x2 array and returns
@@ -105,13 +111,13 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(256, activation='relu',
+        model.add(keras.layers.Dense(512, activation='relu',
                                      batch_size=self.batch_size))
 
-        model.add(keras.layers.Dense(256, activation='relu'
+        model.add(keras.layers.Dense(512, activation='relu'
                                      ))
 
-        model.add(keras.layers.Dense(256, activation='relu'
+        model.add(keras.layers.Dense(512, activation='relu'
                                      ))
 
         model.add(keras.layers.Dense(12, activation='softmax'))
@@ -210,8 +216,14 @@ class Network:
                         # Get the state of the cube
                         state = copy.deepcopy(cube.cube)
 
+                        if self.one_hot:
+                            # One hot encoding
+                            state = keras.utils.to_categorical(state)
+                        # Reshaping the state
+                        state = state.reshape(self.input_shape)
+
                         # Take in state and predict the reward for all possible actions
-                        actions = agent.action(state.reshape(self.input_shape), self.network)
+                        actions = agent.action(state, self.network)
 
                         # Either choose predicted action or explore depending on current epsilon value
                         if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
@@ -222,9 +234,12 @@ class Network:
 
                         # Execute action
                         next_state, face = cube.rotate_cube(take_action, render_image=False)
-
-                        # Calculate reward and find the next state
                         reward = agent.reward(next_state)
+
+                        if self.one_hot:
+                            next_state = keras.utils.to_categorical(next_state)
+                        # Calculate reward and find the next state
+
 
                         # Append the result into the dataset
                         memory_temp.appendleft((state.reshape(self.input_shape), actions, reward, next_state))
@@ -255,12 +270,13 @@ class Network:
 
                 except KeyboardInterrupt:
                     keras.models.save_model(self.network,
-                                            f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
+                                           f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
                     break
 
     def add_to_memory(self, agent, memory_temp):
         """
         Adds memory_tempt to memory and corrects the target vector.
+        :param agent:
         :param memory_temp:
         :return:
         """
@@ -416,15 +432,8 @@ class Network:
         simulation = 0
         self.pretraining = False
 
-        # Choose network input shape
-        if self.choose_net == 'fcn':
-            self.input_shape = (1, 24)
-        elif self.choose_net == 'conv':
-            self.input_shape = (1, 6, 2, 2)
-
         # Start looping through simulations
         while True:
-        # try:
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
 
@@ -437,8 +446,14 @@ class Network:
                 state = copy.deepcopy(cube.cube)
                 # state = keras.utils.normalize(cube.cube, order=2)
 
+                if self.one_hot:
+                    # One hot encoding
+                    state = keras.utils.to_categorical(state)
+                # Reshaping the state
+                state = state.reshape(self.input_shape)
+
                 # Get an action from agent and execute it
-                actions = agent.action(state.reshape(self.input_shape), self.network)
+                actions = agent.action(state, self.network)
 
                 # Choose predicted action or explore.
                 take_action = np.argmax(actions)
@@ -465,12 +480,6 @@ class Network:
 
             self.check_progress(simulation, solved_rate)
 
-            # except Exception as e:
-            #     print(e)
-            #     print("i was here")
-            #     keras.models.save_model(self.network,
-            #                             f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
-            #     break
 
 
 def main():
