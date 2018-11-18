@@ -89,6 +89,7 @@ class Network:
         self.accuracy_points = []                   # Y-axis for plot
         self.axis = []                              # X-axis for plot
         self.plot_progress = config['simulation'].getboolean('show_plot')  # Plots the progress
+        self.check_level = 1
 
         # Initialize network
         if self.load_weights is True:
@@ -360,15 +361,22 @@ class Network:
         :return:
         """
         # Plot the accuracy
-
         if simulation % len(solved_rate) * 10 == 0:
+            if self.difficulty_level > self.check_level:
+                if len(self.axis) > 0:
+                    plt.savefig(f"Accuracy_{self.difficulty_level-1}.png"), plt.close()
+                self.check_level = self.difficulty_level
+                self.axis.clear(), self.accuracy_points.clear()
+
             self.axis.append(simulation)
             self.accuracy_points.append(solved)
-            plt.plot(self.axis, self.accuracy_points, color='r', label='Accuracy')
+            plt.plot(self.axis, self.accuracy_points, color='r')
             plt.ylim((0, 1.3))
             plt.xlabel('Simulations')
             plt.ylabel('Solved cubes')
+            plt.title(f'Accuracy plot for {self.difficulty_level} scramble')
             plt.pause(0.001)
+
 
     def check_progress(self, simulation, solved_rate):
         """
