@@ -11,6 +11,7 @@ import math
 import copy
 import re
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 plt.style.use('ggplot')
 
 from environment import Cube
@@ -535,8 +536,10 @@ def main():
 
     # Start testing
     elif model.test_model is True:
+        x_axis = []
+        y_axis = []
         for i in range(model.difficulty_test):
-            rewards = model.test(agent, rubiks_cube, 10000)
+            rewards = model.test(agent, rubiks_cube, 100)
             accuracy = sum(rewards) / len(rewards)
             print('\n')
             print(f"\033[94m"
@@ -544,8 +547,14 @@ def main():
                   f"\nDifficulty was {model.difficulty_level} scrambles"
                   f"\033[0m"
                   f"\n\033[93m=================================\033[0m")
-
+            x_axis.append(i+1), y_axis.append(accuracy*100)
             model.difficulty_level += 1
+        plt.plot(x_axis, y_axis, color='r', marker='o')
+        plt.ylim((0, 100)), plt.xlim(0, model.difficulty_test+1)
+        plt.xlabel('Number of scrambles'), plt.ylabel('Solve percentage')
+        plt.title('Solve percentage at different scramble lengths')
+        plt.show()
+
 
 if __name__ == '__main__':
     main()
