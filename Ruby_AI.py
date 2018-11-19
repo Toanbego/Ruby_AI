@@ -103,12 +103,12 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(1024, activation='relu',
+        model.add(keras.layers.Dense(4096, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
         model.add(keras.layers.Dropout(0.2))
 
-        model.add(keras.layers.Dense(512, activation='relu'
+        model.add(keras.layers.Dense(1024, activation='relu'
                                      ))
         model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(256, activation='relu'
@@ -149,7 +149,6 @@ class Network:
                       metrics=['accuracy'])
 
         return model
-
 
     def go_to_gym(self):
         """
@@ -229,12 +228,12 @@ class Network:
 
                         # Execute action
                         next_state, face = cube.rotate_cube(take_action, render_image=False)
+
+                        # Calculate reward and find the next state
                         reward = agent.reward(next_state)
 
                         if self.one_hot:
                             next_state = keras.utils.to_categorical(next_state)
-                        # Calculate reward and find the next state
-
 
                         # Append the result into the dataset
                         memory_temp.appendleft((state.reshape(self.input_shape), actions, reward, next_state))
