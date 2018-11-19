@@ -1,4 +1,3 @@
-import tensorflow as tf
 import keras
 import argparse
 import configparser
@@ -59,7 +58,6 @@ class Network:
         self.evaluate = 0
         self.number_of_cubes_to_solve = 100
 
-
         # Weights
         self.load_weights = config['network'].getboolean('load_weights')
         self.load_model_path = config['network']['load_model']
@@ -77,6 +75,7 @@ class Network:
         self.axis = []                              # X-axis for plot
         self.plot_progress = config['simulation'].getboolean('show_plot')  # Plots the progress
         self.check_level = 1
+        self.difficulty_test = config['simulation'].getint('difficulty_level_test')
 
         # Initialize network
         # Load a model if in test mode or user wants to train from an existing net
@@ -165,8 +164,7 @@ class Network:
         self.network.fit(x=states, y=rewards,
                          epochs=1,
                          verbose=0,
-                         batch_size=self.batch_size,
-                         callbacks=[self.tensorboard]
+                         batch_size=self.batch_size
                          )
 
     def load_network(self):
@@ -416,7 +414,7 @@ class Network:
 
             accuracy = sum(rewards)/len(rewards)
             print('\n')
-            if accuracy > self.threshold:
+            if accuracy >= self.threshold:
 
                 # Increment difficulty level
                 self.epsilon = config['network'].getfloat('epsilon')
@@ -440,22 +438,24 @@ class Network:
 
             else:
                 self.solved = 0
-                print(f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training')
+                print(f'\033[91m'
+                      f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training'
+                      f'\033[0m')
 
-    def test(self, agent, cube):
+    def test(self, agent, cube, simulations=1000):
         """
         Method for testing a trained model
         :param agent: The agent
         :param cube: The environment
-        :param evaluating: Is set true when testing the net from the evaluate method
+        :param simulations: Number of simulations
         :return:
         """
         # If we are in test mode, then load weights. If not, we use current network
         if self.test_model is True:
             self.network = self.load_network()
+            # self.difficulty_level = self.difficulty_test
 
         # Initiate variables
-        simulations = 1000
         rewards = []
         self.pretraining = False
 
@@ -467,7 +467,9 @@ class Network:
             cube.cube, cube.face = cube.reset_cube()
 
             # Scramble the cube as many times as the scramble_limit
+
             _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=False)
+
 
             # Loop through episode
             for step in range(self.difficulty_level):
@@ -505,13 +507,10 @@ class Network:
 
             # If the reward is zero here, it means the cube was not solved
             if reward == 0:
-
                 rewards.append(0)
 
-            sys.stdout.write('\r\033[35m' + str(simulation)+'/10000 cubes\033[0m')
+            sys.stdout.write('\r\033[35m' + str(simulation)+f'/{simulations} cubes\033[0m')
             sys.stdout.flush()
-            # print('\rTesting: {}'.format(simulation), flush=True)
-            # # print('\x1b[2K\r')
 
         return rewards
 
@@ -536,8 +535,17 @@ def main():
 
     # Start testing
     elif model.test_model is True:
-        model.test(agent, rubiks_cube)
+        for i in range(model.difficulty_test):
+            rewards = model.test(agent, rubiks_cube, 10000)
+            accuracy = sum(rewards) / len(rewards)
+            print('\n')
+            print(f"\033[94m"
+                  f"Solved {sum(rewards)}/{len(rewards)} with an accuracy of {accuracy}"
+                  f"\nDifficulty was {model.difficulty_level} scrambles"
+                  f"\033[0m"
+                  f"\n\033[93m=================================\033[0m")
 
+            model.difficulty_level += 1
 
 if __name__ == '__main__':
     main()
