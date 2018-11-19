@@ -48,6 +48,7 @@ class Cube:
         numeric = config['environment'].getboolean('numeric_representation')
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
+
         if face != str(face):
             face = self.num_to_str[int(face)]
 
