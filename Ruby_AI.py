@@ -16,27 +16,11 @@ plt.style.use('ggplot')
 
 from environment import Cube
 from agent import Solver
+import sys
 
 
 config = configparser.ConfigParser()
 config.read("config.ini")
-
-
-def parse_arguments():
-    """
-    Parse commandline arguments
-    :return:
-    """
-    parser = argparse.ArgumentParser()
-    # Set up arguments
-
-    parser.add_argument('-r', '--read_data', type=str, default=None,
-                        help='Take in a .pkl file containing the data set')
-    parser.add_argument('-w', '--generate_data', default=False, action='store_true',
-                        help='If a filename is chosen, a data_set will be created')
-
-    arguments = parser.parse_args()
-    return arguments
 
 
 class Network:
@@ -57,6 +41,8 @@ class Network:
         self.cube = cube
 
         # Network parameters
+        self.train_model = config['simulation'].getboolean('train')
+        self.test_model = config['simulation'].getboolean('test')
         self.input_shape = tuple([int(s) for s in config['network']['input_shape'].split(',')])
         self.choose_net = config['network']['net']
         self.eta = config['network'].getfloat('learning_rate')  # Learning rate
@@ -68,9 +54,10 @@ class Network:
         self.batch_size = config['network'].getint('batch_size')
         self.pretraining = config['simulation'].getboolean('pretraining')
         self.epoch = config['network'].getint('epoch')
-        self.threshold = config['network'].getint('threshold')
+        self.threshold = config['network'].getfloat('threshold')
         self.one_hot = config['network'].getboolean('one_hot_encoding')
         self.evaluate = 0
+        self.number_of_cubes_to_solve = 100
 
 
         # Weights
@@ -91,19 +78,21 @@ class Network:
         self.plot_progress = config['simulation'].getboolean('show_plot')  # Plots the progress
 
         # Initialize network
-        if self.load_weights is True:
+        # Load a model if in test mode or user wants to train from an existing net
+        # If not, then a new net is initiated for training.
+        if self.load_weights is True or self.test_model is True:
             self.network = self.load_network()
         else:
             if self.choose_net == 'fcn':
-                self.network = self.model_reinforcement()
+                self.network = self.model_fcn()
             elif self.choose_net == 'conv':
                 self.network = self.model_conv()
 
+        # If one hot, change the input shape to match the extra added dimension. Does not work with conv net.
         if self.one_hot:
             self.input_shape = 1, 144
 
-
-    def model_reinforcement(self):
+    def model_fcn(self):
         """
         Creates a neural network that takes in a flatted 6x2x2 array and returns
         the expected reward for a set of actions.
@@ -113,15 +102,17 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(512, activation='relu',
-                                     batch_size=self.batch_size))
+        model.add(keras.layers.Dense(1024, activation='relu',
+                                     batch_size=self.batch_size,
+                                     ))
+        model.add(keras.layers.Dropout(0.2))
 
         model.add(keras.layers.Dense(512, activation='relu'
                                      ))
-
-        model.add(keras.layers.Dense(512, activation='relu'
+        model.add(keras.layers.Dropout(0.2))
+        model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-
+        model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
@@ -190,7 +181,7 @@ class Network:
         :return:
         """
 
-        solved_rate = deque(maxlen=40)
+        solved_rate = deque(maxlen=self.number_of_cubes_to_solve)
 
         # Check the last difficulty level if loading weights
         if self.load_weights is True:
@@ -200,7 +191,7 @@ class Network:
         simulation = 0
 
         # Start episodes
-        while self.difficulty_level:
+        while True:
                 try:
                     memory_temp = deque(maxlen=self.difficulty_level)
                     # Reset cube before each simulation
@@ -259,25 +250,28 @@ class Network:
 
                     # Increase the simulation counter
                     simulation += 1
-                    self.simulations_this_scrambles +=1
-                    if simulation % 100000 == 0:
+                    self.simulations_this_scrambles += 1
+                    if simulation % 5000 == 0:
                         keras.models.save_model(self.network,
-                                                f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+                                                f"models/training_{self.difficulty_level}_scrambles.h5")
 
                     # If the reward is zero here, it means the cube was not solved
                     if reward != self.done:
                         solved_rate.appendleft(0)
+
+                    # Add episode to memory and create target vectors
                     self.add_to_memory(agent, memory_temp)
 
                     # Print out the current progress
-                    if self.pretraining is False:
-                        self.check_progress(simulation, solved_rate)
-                    else:
-                        self.check_progress(simulation, solved_rate)
+                    self.check_progress(simulation, solved_rate)
 
+                    # Evaluate the network
+                    self.evaluate_network(agent, cube)
+
+                # Save the current model when exiting
                 except KeyboardInterrupt:
                     keras.models.save_model(self.network,
-                                           f"models/TEST{self.difficulty_level}_scrambles - {time.time()}.h5")
+                                           f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
                     break
 
     def add_to_memory(self, agent, memory_temp):
@@ -399,74 +393,82 @@ class Network:
             if self.plot_progress is True:
                 self.plot_accuracy(simulation, self.solved, solved_rate)
 
-            # Evaluate the network
-            self.evaluate_network()
-
-    def evaluate_network(self):
+    def evaluate_network(self, agent, cube):
         """
         Evaluates how well the network is performing over all
         :return:
         """
         # Saves the model if the model is deemed good enough
         if round(self.solved, 2) == 1 and self.pretraining is False:
-            self.difficulty_counter += 1
 
-            if self.difficulty_counter>=self.threshold:
+            rewards = self.test(agent, cube)
+
+            accuracy = sum(rewards)/len(rewards)
+            print('\n')
+            if accuracy > self.threshold:
 
                 # Increment difficulty level
                 self.epsilon = config['network'].getfloat('epsilon')
 
-                print(f"\033[91mLearned from {self.simulations_this_scrambles} cubes with {self.difficulty_level} "
-                      f"scrambles"
-                      f"\nIncreasing the number of scrambles by 1\033[0m"
+                print(f"\033[91m"
+                      f"Solved {sum(rewards)}/{len(rewards)} with an accuracy of {accuracy}"
+                      f"\nIncreasing the number of scrambles by 1"
+                      f"\033[0m"
                       f"\n\033[93m=================================\033[0m")
 
                 # Reset variables
-                self.difficulty_counter = 0
                 self.best_accuracy = 0
-                self.simulations_this_scramble = 0
+                self.simulations_this_scrambles = 0
+                self.epsilon_decay_steps = 0
+                self.solved = 0
 
                 self.difficulty_level += 1
                 if config['simulation'].getboolean('test') is not True:
                     keras.models.save_model(self.network,
                                             f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
-
+            else:
+                self.solved = 0
+                print(f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training')
 
     def test(self, agent, cube):
         """
         Method for testing a trained model
-        :param agent:
-        :param cube:
+        :param agent: The agent
+        :param cube: The environment
+        :param evaluating: Is set true when testing the net from the evaluate method
         :return:
         """
-        self.network = self.load_network()
+        # If we are in test mode, then load weights. If not, we use current network
+        if self.test_model is True:
+            self.network = self.load_network()
 
+        # Initiate variables
         solved_rate = deque(maxlen=40)
-        self.best_accuracy = 0.0
-        self.difficulty_counter = 0
-        self.epsilon_decay_steps = 0
-
-        simulation = 0
+        simulations = 10000
+        rewards = []
         self.pretraining = False
 
-        # Start looping through simulations
-        while True:
+        print("\033[93mEvaluating:\033[0m")
+        # Start looping through episodes
+        for simulation in range(simulations):
+
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
 
             # Scramble the cube as many times as the scramble_limit
             _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=False)
 
+            # Loop through episode
             for step in range(self.difficulty_level):
 
                 # Get the state of the cube
                 state = copy.deepcopy(cube.cube)
-                # state = keras.utils.normalize(cube.cube, order=2)
 
                 if self.one_hot:
                     # One hot encoding
                     state = keras.utils.to_categorical(state)
+
                 # Reshaping the state
                 state = state.reshape(self.input_shape)
 
@@ -482,11 +484,10 @@ class Network:
                 # Calculate reward and find the next state
                 reward = agent.reward(next_state)
 
-                # target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, step, cube)
-
                 # Is the cube solved?
                 if reward == 1:
-                    solved_rate.appendleft(1)
+
+                    rewards.append(1)
                     break
 
             # Increase the simulation counter
@@ -494,10 +495,15 @@ class Network:
 
             # If the reward is zero here, it means the cube was not solved
             if reward == 0:
-                solved_rate.appendleft(0)
 
-            self.check_progress(simulation, solved_rate)
+                rewards.append(0)
 
+            sys.stdout.write('\r\033[35m' + str(simulation)+'/10000 cubes\033[0m')
+            sys.stdout.flush()
+            # print('\rTesting: {}'.format(simulation), flush=True)
+            # # print('\x1b[2K\r')
+
+        return rewards
 
 
 def main():
@@ -515,11 +521,11 @@ def main():
     agent = Solver(rubiks_cube)
 
     # Start training
-    if config['simulation'].getboolean('train'):
+    if model.train_model is True:
         model.train(agent, rubiks_cube)
 
     # Start testing
-    elif config['simulation'].getboolean('test'):
+    elif model.test_model is True:
         model.test(agent, rubiks_cube)
 
 
