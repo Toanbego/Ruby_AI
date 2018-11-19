@@ -1,37 +1,26 @@
+import tensorflow as tf
 import keras
 import argparse
 import configparser
-from sklearn.model_selection import train_test_split
 import numpy as np
+import itertools
 from collections import deque
+import collections
 import random
 import time
-import h5py
+import math
+import copy
+import re
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 
 from environment import Cube
 from agent import Solver
-from data import read_data_set
+import sys
+
 
 config = configparser.ConfigParser()
 config.read("config.ini")
-
-
-
-def parse_arguments():
-    """
-    Parse commandline arguments
-    :return:
-    """
-    parser = argparse.ArgumentParser()
-    # Set up arguments
-
-    parser.add_argument('-r', '--read_data', type=str, default=None,
-                        help='Take in a .pkl file containing the data set')
-    parser.add_argument('-w', '--generate_data', default=False, action='store_true',
-                        help='If a filename is chosen, a data_set will be created')
-
-    arguments = parser.parse_args()
-    return arguments
 
 
 class Network:
@@ -50,18 +39,61 @@ class Network:
     """
     def __init__(self, cube):
         self.cube = cube
-        self.eta = 0.0001  # Learning rate
-        self.gamma = 0.95  # Discount rate
-        self.decay = 0.0001
-        self.batch_size = config['model'].getint('batch_size')
-        self.memory = deque(maxlen=10000)
-        self.pretraining = config['model'].getboolean('pretraining')
-        self.tensorboard = keras.callbacks.TensorBoard(log_dir="logs/", write_graph=True, update_freq=50)
+
+        # Network parameters
+        self.train_model = config['simulation'].getboolean('train')
+        self.test_model = config['simulation'].getboolean('test')
+        self.input_shape = tuple([int(s) for s in config['network']['input_shape'].split(',')])
+        self.choose_net = config['network']['net']
+        self.eta = config['network'].getfloat('learning_rate')  # Learning rate
+        self.gamma = config['network'].getfloat('discount_rate')  # Discount rate
+        self.decay = config['network'].getfloat('learning_decay')
+        self.epsilon = config['network'].getfloat('epsilon')
+        self.epsilon_min = config['network'].getfloat('epsilon_min')
+        self.epsilon_decay = config['network'].getfloat('epsilon_decay')
+        self.batch_size = config['network'].getint('batch_size')
+        self.pretraining = config['simulation'].getboolean('pretraining')
+        self.epoch = config['network'].getint('epoch')
+        self.threshold = config['network'].getfloat('threshold')
+        self.one_hot = config['network'].getboolean('one_hot_encoding')
+        self.evaluate = 0
+        self.number_of_cubes_to_solve = 100
+
+
+        # Weights
+        self.load_weights = config['network'].getboolean('load_weights')
+        self.load_model_path = config['network']['load_model']
+
+        # Simulation
+        self.done = 1                               # Checks if a cube is done
+        self.solved = 0                             # Calculates the current accuracy
+        self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
+        self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
+        self.memory = deque(maxlen=1000)            # Length of memory
+        self.difficulty_level = 1                   # The amount of scrambles
+        self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
+        self.difficulty_counter = 0                 # Current amount of scrambles
+        self.accuracy_points = []                   # Y-axis for plot
+        self.axis = []                              # X-axis for plot
+        self.plot_progress = config['simulation'].getboolean('show_plot')  # Plots the progress
+        self.check_level = 1
 
         # Initialize network
-        self.network = self.model_reinforcement()
+        # Load a model if in test mode or user wants to train from an existing net
+        # If not, then a new net is initiated for training.
+        if self.load_weights is True or self.test_model is True:
+            self.network = self.load_network()
+        else:
+            if self.choose_net == 'fcn':
+                self.network = self.model_fcn()
+            elif self.choose_net == 'conv':
+                self.network = self.model_conv()
 
-    def model_reinforcement(self, input=None):
+        # If one hot, change the input shape to match the extra added dimension. Does not work with conv net.
+        if self.one_hot:
+            self.input_shape = 1, 144
+
+    def model_fcn(self):
         """
         Creates a neural network that takes in a flatted 6x2x2 array and returns
         the expected reward for a set of actions.
@@ -70,20 +102,54 @@ class Network:
         """
 
         model = keras.models.Sequential()
+
         model.add(keras.layers.Dense(1024, activation='relu',
                                      batch_size=self.batch_size,
-                                     input_dim=24))
-        model.add(keras.layers.Dense(512, activation='relu'))
-        model.add(keras.layers.Dense(256, activation='relu'))
+                                     ))
+        model.add(keras.layers.Dropout(0.2))
 
+        model.add(keras.layers.Dense(512, activation='relu'
+                                     ))
+        model.add(keras.layers.Dropout(0.2))
+        model.add(keras.layers.Dense(256, activation='relu'
+                                     ))
+        model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(12, activation='softmax'))
 
-        adam = keras.optimizers.Adam(lr=self.eta, decay=self.decay)
-        model.compile(optimizer=adam,
-                      loss='mse',
+        model.compile(loss=keras.losses.categorical_crossentropy,
+                      optimizer=keras.optimizers.adadelta(),
                       metrics=['accuracy'])
 
         return model
+
+    def model_conv(self):
+        """
+                Creates a neural network that takes in a flatted 6x2x2 array and returns
+                the expected reward for a set of actions.
+                :param input:
+                :return:
+                """
+
+        model = keras.models.Sequential()
+        model.add(keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+                                          batch_size=self.batch_size, padding='same'
+                                          ))
+        model.add(keras.layers.Conv2D(64, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+                                      padding='same'
+                                      ))
+
+        model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(64, activation='relu',
+                                     ))
+
+        model.add(keras.layers.Dense(12, activation='softmax'))
+
+        model.compile(loss=keras.losses.categorical_crossentropy,
+                      optimizer=keras.optimizers.adadelta(),
+                      metrics=['accuracy'])
+
+        return model
+
 
     def go_to_gym(self):
         """
@@ -92,17 +158,9 @@ class Network:
         """
         if self.pretraining is True:
             return
-        # Sample a batch of data from memory
-        minibatch = random.sample(self.memory, self.batch_size)
 
-        # Append the state and target from the data
-        x_batch, y_batch = [], []
-        for state, act, target, next_state in minibatch:
-            x_batch.append(state), y_batch.append(target)
-
-        # Reshape the data to match the batch size
-        states = np.array(x_batch).reshape(self.batch_size, 24)
-        rewards = np.array(y_batch).reshape(self.batch_size, 12)
+        # Create a mini batch from memory
+        states, rewards = self.sample_memory()
 
         self.network.fit(x=states, y=rewards,
                          epochs=1,
@@ -111,6 +169,12 @@ class Network:
                          callbacks=[self.tensorboard]
                          )
 
+    def load_network(self):
+        """
+        Loads a pretrained network
+        :return:
+        """
+        return keras.models.load_model(self.load_model_path)
 
     def train(self, agent, cube):
         """
@@ -120,97 +184,336 @@ class Network:
         :return:
         """
 
-        # x_train, x_test, y_train, y_test = split_data(data)  # Split data into training and test sets
-        num_of_sim = config['model'].getint('num_of_sim')  # Fetch the amount of games
-        max_steps = config['model'].getint('num_of_total_moves')  # Max amount of moves before "losing"
+        solved_rate = deque(maxlen=self.number_of_cubes_to_solve)
 
-        solved_rate = deque(maxlen=40)
-        solved_final = 0
-        difficulty_level = 1
+        # Check the last difficulty level if loading weights
+        if self.load_weights is True:
+            # Find the difficulty level
+            self.difficulty_level = int(re.search('_(\d)_', self.load_model_path)[0].strip('_'))
 
-        # Start looping through simulations
-        for simulation in range(1, num_of_sim):
+        simulation = 0
+
+        # Start episodes
+        while True:
+                try:
+                    memory_temp = deque(maxlen=self.difficulty_level)
+                    # Reset cube before each simulation
+                    cube.cube, cube.face = cube.reset_cube()
+
+                    # Scramble the cube as many times as the scramble_limit
+                    _, scramble_actions = cube.scramble_cube(self.difficulty_level)
+
+                    # After 1000 simulations, pretraining is turned off
+                    if len(self.memory) >= self.batch_size:
+                        self.pretraining = False
+
+                    for step in range(self.difficulty_level):
+
+                        # Get the state of the cube
+                        state = copy.deepcopy(cube.cube)
+
+                        if self.one_hot:
+                            # One hot encoding
+                            state = keras.utils.to_categorical(state)
+                        # Reshaping the state
+                        state = state.reshape(self.input_shape)
+
+                        # Take in state and predict the reward for all possible actions
+                        actions = agent.action(state, self.network)
+
+                        # Either choose predicted action or explore depending on current epsilon value
+                        if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
+                            self.epsilon_decay_steps += 1
+                            take_action = np.random.random_integers(0, 11, 1)
+                        else:
+                            take_action = np.argmax(actions)
+
+                        # Execute action
+                        next_state, face = cube.rotate_cube(take_action, render_image=False)
+                        reward = agent.reward(next_state)
+
+                        if self.one_hot:
+                            next_state = keras.utils.to_categorical(next_state)
+                        # Calculate reward and find the next state
+
+
+                        # Append the result into the dataset
+                        memory_temp.appendleft((state.reshape(self.input_shape), actions, reward, next_state))
+
+                        # Go train, if pretraining is finished
+                        for train in range(self.epoch):
+                            if self.pretraining is False:
+                                self.go_to_gym()
+
+                        # Is the cube solved?
+                        if reward == self.done:
+
+                            solved_rate.appendleft(1)
+                            break
+
+                    # Increase the simulation counter
+                    simulation += 1
+                    self.simulations_this_scrambles += 1
+                    if simulation % 5000 == 0:
+                        keras.models.save_model(self.network,
+                                                f"models/training_{self.difficulty_level}_scrambles.h5")
+
+                    # If the reward is zero here, it means the cube was not solved
+                    if reward != self.done:
+                        solved_rate.appendleft(0)
+
+                    # Add episode to memory and create target vectors
+                    self.add_to_memory(agent, memory_temp)
+
+                    # Print out the current progress
+                    self.check_progress(simulation, solved_rate)
+
+                    # Evaluate the network
+                    self.evaluate_network(agent, cube)
+
+                # Save the current model when exiting
+                except KeyboardInterrupt:
+                    keras.models.save_model(self.network,
+                                           f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+                    break
+
+    def add_to_memory(self, agent, memory_temp):
+        """
+        Adds memory_tempt to memory and corrects the target vector.
+        :param agent:
+        :param memory_temp:
+        :return:
+        """
+        if len(memory_temp) > 1:
+            end_reward = memory_temp[0][2]
+        else:
+            end_reward = memory_temp[0][2]
+
+        for state, actions, reward, next_state in memory_temp:
+            take_action = np.argmax(actions)
+            # Create the target from the reward and predicted reward
+            target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, end_reward)
+            # Append to memory
+            self.memory.appendleft((state, actions, target_vector, next_state))
+
+    def create_target_vector(self, agent, next_state, reward, actions, take_action, end_reward):
+        """
+        Creates the target vector used as label in the training.
+        Will also look at future rewards with a discount factor
+        :param reward:
+        :param actions:
+        :return:
+        """
+        # If we know the final reward is 1, then the action yields a rewards as well
+        if end_reward == 1:
+            check_future = agent.action(next_state.reshape(self.input_shape), self.network)
+            target = reward + self.gamma*np.argmax(check_future)
+
+        # If there is no reward in the end, then the current reward is 0
+        else:
+            target = reward
+
+        actions[0][take_action] = target
+        return actions
+
+    def sample_memory(self):
+        """
+        Creates a mini batch from the memory
+        Currently uniform selection is the only option. Should apply
+        prioritized selection as well
+        :return:
+        """
+        # Sample a batch of data from memory
+        mini_batch = random.sample(self.memory, self.batch_size)
+
+        # Append the state and target from the data
+        x_batch, y_batch = [], []
+        for state, act, target, next_state in mini_batch:
+            x_batch.append(state), y_batch.append(target)
+
+        # Reshape the data to match the batch size
+        lst = list(self.input_shape)
+        lst[0] = self.batch_size
+        lst = tuple(lst)
+        states = np.array(x_batch).reshape(lst)
+        rewards = np.array(y_batch).reshape(self.batch_size, 12)
+        return states, rewards
+
+    def get_epsilon(self, decay_steps):
+        """
+        Returns the e - greedy based on how many simulations that has been run for this
+        amount of scrambles
+        :param decay_steps: THe number of simulations used for these scrambles.
+        :return:
+        """
+        if self.pretraining is False:
+            return max(self.epsilon_min, min(self.epsilon, 1.0 - math.log10((decay_steps + 1) * self.epsilon_decay)))
+        else:
+            return 1
+
+    def plot_accuracy(self, simulation, solved, solved_rate):
+        """
+        Plots the accuracy of the cubes
+        :return:
+        """
+        # Plot the accuracy
+        if simulation % len(solved_rate) * 10 == 0:
+            if self.difficulty_level > self.check_level:
+                if len(self.axis) > 0:
+                    plt.savefig(f"Accuracy_{self.difficulty_level-1}.png"), plt.close()
+                self.check_level = self.difficulty_level
+                self.axis.clear(), self.accuracy_points.clear()
+
+            self.axis.append(simulation)
+            self.accuracy_points.append(solved)
+            plt.plot(self.axis, self.accuracy_points, color='r')
+            plt.ylim((0, 1.3))
+            plt.xlabel('Simulations')
+            plt.ylabel('Solved cubes')
+            plt.title(f'Accuracy plot for {self.difficulty_level} scramble')
+            plt.pause(0.001)
+
+    def check_progress(self, simulation, solved_rate):
+        """
+        Checks the progress of the training and increases the number of scrambles if it deems
+        the network good enough
+        :param difficulty_level:
+        :param simulation:
+        :param solved_rate:
+        :return:
+        """
+        # Calculate score
+        if simulation % len(solved_rate) == 0:
+            self.solved = (sum(solved_rate) / len(solved_rate))
+
+            # Print the current progress
+            print(f"\033[93m"     
+                  f"{sum(solved_rate)} Cubes solved of the last {len(solved_rate)}"
+                  f" \n\033[35mAccuracy: {round(self.solved, 2)}\033[0m"
+                  f"\033[93m\nExploration rate: {round(self.get_epsilon(self.epsilon_decay_steps), 5)}"
+                  f"\nScrambles: {self.difficulty_level} \n\033[35mNumber of simulations: {simulation}\033[0m"
+                  f"\n\033[93mBest accuracy: {round(self.best_accuracy, 3)}, "
+                  f"reached 100% {self.difficulty_counter} times\033[0m"
+                  f"\n\033[93m=================================\033[0m"
+                  f"\033[0m")
+
+            # Update the best accuracy
+            if self.solved > self.best_accuracy:
+                self.best_accuracy = self.solved
+
+            if self.plot_progress is True:
+                self.plot_accuracy(simulation, self.solved, solved_rate)
+
+    def evaluate_network(self, agent, cube):
+        """
+        Evaluates how well the network is performing over all
+        :return:
+        """
+        # Saves the model if the model is deemed good enough
+        if round(self.solved, 2) == 1 and self.pretraining is False:
+
+            rewards = self.test(agent, cube)
+
+            accuracy = sum(rewards)/len(rewards)
+            print('\n')
+            if accuracy > self.threshold:
+
+                # Increment difficulty level
+                self.epsilon = config['network'].getfloat('epsilon')
+
+                print(f"\033[91m"
+                      f"Solved {sum(rewards)}/{len(rewards)} with an accuracy of {accuracy}"
+                      f"\nIncreasing the number of scrambles by 1"
+                      f"\033[0m"
+                      f"\n\033[93m=================================\033[0m")
+
+                # Reset variables
+                self.best_accuracy = 0
+                self.simulations_this_scrambles = 0
+                self.epsilon_decay_steps = 0
+                self.solved = 0
+
+                self.difficulty_level += 1
+                if config['simulation'].getboolean('test') is not True:
+                    keras.models.save_model(self.network,
+                                            f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
+
+            else:
+                self.solved = 0
+                print(f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training')
+
+    def test(self, agent, cube):
+        """
+        Method for testing a trained model
+        :param agent: The agent
+        :param cube: The environment
+        :param evaluating: Is set true when testing the net from the evaluate method
+        :return:
+        """
+        # If we are in test mode, then load weights. If not, we use current network
+        if self.test_model is True:
+            self.network = self.load_network()
+
+        # Initiate variables
+        simulations = 1000
+        rewards = []
+        self.pretraining = False
+
+        print("\033[93mEvaluating:\033[0m")
+        # Start looping through episodes
+        for simulation in range(simulations):
+
             # Reset cube before each simulation
             cube.cube, cube.face = cube.reset_cube()
 
             # Scramble the cube as many times as the scramble_limit
-            cube.cube = cube.scramble_cube(difficulty_level)[0]
+            _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=False)
 
-            # After 10 simulations, pretraining is turned off
-            if simulation > self.batch_size*5:
-                self.pretraining = False
+            # Loop through episode
+            for step in range(self.difficulty_level):
 
-            for step in range(max_steps):
                 # Get the state of the cube
-                state = cube.cube
+                state = copy.deepcopy(cube.cube)
+
+                if self.one_hot:
+                    # One hot encoding
+                    state = keras.utils.to_categorical(state)
+
+                # Reshaping the state
+                state = state.reshape(self.input_shape)
 
                 # Get an action from agent and execute it
-                act = agent.action(state.reshape(1, 24), self.pretraining)
-                cube.rotate_cube(np.argmax(act))
+                actions = agent.action(state, self.network)
+
+                # Choose predicted action or explore.
+                take_action = np.argmax(actions)
+
+                # Execute action
+                next_state, face = cube.rotate_cube(take_action, render_image=False)
 
                 # Calculate reward and find the next state
-                next_state = state
                 reward = agent.reward(next_state)
-
-                # TODO Everything after reward is an attempt to add the future reward
-                target = reward #+ self.gamma * np.max(agent.action(next_state.reshape(1, 24), self.pretraining))
-                target_vector = act
-                target_vector[0][np.argmax(act)] = target
-
-                # Append the result into the dataset
-                self.memory.appendleft((state.reshape(1, 24), act, target_vector, next_state))
-
-                # Go train, if pretraining is finished
-                if self.pretraining is False:
-                    self.go_to_gym()
 
                 # Is the cube solved?
                 if reward == 1:
-                    # Solved score from the last 80% of the simulation
-                    if simulation > simulation*0.8:
-                        solved_final += 1
-                    solved_rate.appendleft(1)
+
+                    rewards.append(1)
                     break
+
+            # Increase the simulation counter
+            simulation += 1
 
             # If the reward is zero here, it means the cube was not solved
             if reward == 0:
-                solved_rate.appendleft(0)
 
-            # Calculate score
-            if simulation % 10 == 0:
-                solved = (sum(solved_rate) / len(solved_rate))
-                print(f"\033[93m"
-                      f"{sum(solved_rate)} Cubes solved of the last 40, accuracy: {round(solved, 2)}"
-                      f"\033[0m")
+                rewards.append(0)
 
-                # Saves the model if the model is deemed good enough
-                if round(solved, 2) == 1:
-                    print("Increasing the number of scrambles by 1")
-                    difficulty_level += 1
-                    keras.models.save_model(self.network, f"models/solves_one_scramble - {time.time()}.h5")
+            sys.stdout.write('\r\033[35m' + str(simulation)+'/10000 cubes\033[0m')
+            sys.stdout.flush()
+            # print('\rTesting: {}'.format(simulation), flush=True)
+            # # print('\x1b[2K\r')
 
-        print(f"Final difficulty level: {difficulty_level}")
-        print(solved_final/(simulation*0.8))
-        print(solved_final)
-        print((simulation*0.8))
-
-    def test(self):
-        """
-        Solves a cube with a trained model. Always renders an image
-        :return:
-        """
-        pass
-
-
-def split_data(data):
-    """
-    Splits the data into training, test and validation using sklearn lib.
-    :param data: The data set
-    :return:
-    """
-    return train_test_split(data["Cube"],
-                            data["Actions"],
-                            test_size=0.33)
+        return rewards
 
 
 def main():
@@ -225,13 +528,14 @@ def main():
     model = Network(rubiks_cube.cube)
 
     # Set up agent
-    agent = Solver(rubiks_cube, model.network)
+    agent = Solver(rubiks_cube)
 
     # Start training
-    if config['model'].getboolean('train'):
+    if model.train_model is True:
         model.train(agent, rubiks_cube)
 
-    elif config['model'].getboolean('test'):
+    # Start testing
+    elif model.test_model is True:
         model.test(agent, rubiks_cube)
 
 

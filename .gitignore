@@ -22,9 +22,10 @@ $RECYCLE.BIN/
 # Operating System Files
 # =========================
 **.idea/
+**models/
 **__pycache__
 **.pytest_cache
-**.DS_Store
+.DS_Store
 **.vscode
 after_move.PNG
 before_move.PNG

@@ -2,13 +2,12 @@
 This is the agent.
 """
 import environment
-
-import time
-import pandas as pd
-import argparse
-import keras
 import numpy as np
-import random
+import configparser
+
+config = configparser.ConfigParser()
+config.read("config.ini")
+
 
 
 class Solver:
@@ -17,17 +16,16 @@ class Solver:
     the Rubik's cube environment in environment.py
     """
 
-    def __init__(self, state, network):
+    def __init__(self, state):
         """
         Initialize attributes for class
         :param state: Should be before any movement is done
         """
         self.end_state = state.cube
         self.action_space = state.action_space
-        self.network = network
-        self.hey = np.arange(0, 12)
 
-    def action(self, cube, pretraining=False):
+
+    def action(self, cube, network):
         """
         Perform an action on the rubik's cube environment according to a given
         policy
@@ -35,10 +33,8 @@ class Solver:
         :param pretraining:
         :return:
         """
-        if pretraining is True:
-            return np.random.random(12).reshape(1, 12)
-        else:
-            return self.network.predict(cube)
+        return network.predict(cube)
+
 
     def reward(self, state=None):
         """
@@ -48,7 +44,8 @@ class Solver:
         :return:
         """
         reward_check = [len(np.unique(element)) for element in state]
-        if len(set(reward_check)) == 1:
+
+        if sum(reward_check) == 6:
             return 1
         else:
             return 0

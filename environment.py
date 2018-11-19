@@ -5,6 +5,7 @@ This is the environment script for the agent.
 import numpy as np
 from color_cube import make_plot
 import configparser
+import random
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -48,7 +49,7 @@ class Cube:
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
         if face != str(face):
-            face = self.num_to_str[face]
+            face = self.num_to_str[int(face)]
 
         if render_image:
             make_plot(self.cube, numeric)
@@ -162,7 +163,7 @@ class Cube:
         if render_image:
             make_plot(self.cube, numeric)
 
-        return self.cube
+        return self.cube, face
 
     def reset_cube(self):
         """
@@ -173,6 +174,8 @@ class Cube:
         if config['environment'].getboolean('numeric_representation'):
             cube = np.zeros(self.cube_size, dtype=int)
             colors = [1, 5, 3, 0, 2, 4]
+            if config['environment'].getboolean('random_sides') is True:
+                random.shuffle(colors)
         else:
             cube = np.zeros(self.cube_size, dtype=str)
             colors = ['g', 'y', 'o', 'w', 'b', 'r']
@@ -193,11 +196,16 @@ class Cube:
         store_action = []  # List to store the actions
 
         # Randomly choose actions from the action space
-        action = np.random.choice(self.action_space.flatten(), size=k)
+
+        action = np.random.choice(range(0, 12), size=k)
 
         # Loop through actions and move the cube
-
         for a in action:
+            if config['environment'].getboolean('expand_training') is True:
+                if store_action != []:
+                    while a == store_action[-1]+6 or a == store_action[-1]-6:
+                        a = np.random.choice(range(0, 12), size=1)
+
             store_action.append(a)
             self.rotate_cube(a, render_image)
 
