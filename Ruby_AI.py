@@ -1,17 +1,14 @@
 import keras
-import argparse
 import configparser
 import numpy as np
-import itertools
 from collections import deque
-import collections
 import random
 import time
 import math
 import copy
 import re
+import tensorflow as tf
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
 plt.style.use('ggplot')
 
 from environment import Cube
@@ -68,7 +65,7 @@ class Network:
         self.solved = 0                             # Calculates the current accuracy
         self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
         self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
-        self.memory = deque(maxlen=1000)            # Length of memory
+        self.memory = deque(maxlen=124)            # Length of memory
         self.difficulty_level = 1                   # The amount of scrambles
         self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
         self.difficulty_counter = 0                 # Current amount of scrambles
@@ -103,17 +100,16 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(4096, activation='relu',
+        model.add(keras.layers.Dense(512, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
-        model.add(keras.layers.Dropout(0.2))
-
-        model.add(keras.layers.Dense(1024, activation='relu'
-                                     ))
-        model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-        model.add(keras.layers.Dropout(0.2))
+        model.add(keras.layers.Dense(256, activation='relu'
+                                     ))
+        model.add(keras.layers.Dense(256, activation='relu'
+                                     ))
+        model.add(keras.layers.Dropout(0.3))
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
@@ -538,7 +534,7 @@ def main():
         x_axis = []
         y_axis = []
         for i in range(model.difficulty_test):
-            rewards = model.test(agent, rubiks_cube, 100)
+            rewards = model.test(agent, rubiks_cube, 1000)
             accuracy = sum(rewards) / len(rewards)
             print('\n')
             print(f"\033[94m"
@@ -549,7 +545,7 @@ def main():
             x_axis.append(i+1), y_axis.append(accuracy*100)
             model.difficulty_level += 1
         plt.plot(x_axis, y_axis, color='r', marker='o')
-        plt.ylim((0, 100)), plt.xlim(0, model.difficulty_test+1)
+        plt.ylim((0, 110)), plt.xlim(0, model.difficulty_test+1)
         plt.xlabel('Number of scrambles'), plt.ylabel('Solve percentage')
         plt.title('Solve percentage at different scramble lengths')
         plt.show()
