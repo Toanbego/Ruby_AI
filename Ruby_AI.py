@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
 from environment import Cube
-from agent import Solver
 import sys
 
 
@@ -67,7 +66,7 @@ class Network:
         self.solved = 0                             # Calculates the current accuracy
         self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
         self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
-        self.memory = deque(maxlen=1000)            # Length of memory
+        self.memory = deque(maxlen=self.batch_size)              # Length of memory
         self.difficulty_level = 1                   # The amount of scrambles
         self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
         self.difficulty_counter = 0                 # Current amount of scrambles
@@ -102,20 +101,21 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(4096, activation='relu',
+        model.add(keras.layers.Dense(1024, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
         model.add(keras.layers.Dropout(0.2))
 
-        model.add(keras.layers.Dense(1024, activation='relu'
+        model.add(keras.layers.Dense(512, activation='relu'
                                      ))
         model.add(keras.layers.Dropout(0.2))
-        model.add(keras.layers.Dense(256, activation='relu'
+        model.add(keras.layers.Dense(512, activation='relu'
                                      ))
         model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
+
                       optimizer=keras.optimizers.adadelta(),
                       metrics=['accuracy'])
 
@@ -216,7 +216,8 @@ class Network:
                         state = state.reshape(self.input_shape)
 
                         # Take in state and predict the reward for all possible actions
-                        actions = agent.action(state, self.network)
+                        actions = self.network.predict(state)
+                        # actions = agent.action(state, self.network)
 
                         # Either choose predicted action or explore depending on current epsilon value
                         if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
@@ -229,7 +230,7 @@ class Network:
                         next_state, face = cube.rotate_cube(take_action, render_image=False)
 
                         # Calculate reward and find the next state
-                        reward = agent.reward(next_state)
+                        reward = cube.reward()
 
                         if self.one_hot:
                             next_state = keras.utils.to_categorical(next_state)
@@ -281,16 +282,15 @@ class Network:
         :param memory_temp:
         :return:
         """
-        if len(memory_temp) > 1:
-            end_reward = memory_temp[0][2]
-        else:
-            end_reward = memory_temp[0][2]
+        # Get the end reward to set up the target vector
+        end_reward = memory_temp[0][2]
 
         for state, actions, reward, next_state in memory_temp:
             take_action = np.argmax(actions)
+
             # Create the target from the reward and predicted reward
             target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, end_reward)
-            # Append to memory
+
             self.memory.appendleft((state, actions, target_vector, next_state))
 
     def create_target_vector(self, agent, next_state, reward, actions, take_action, end_reward):
@@ -303,7 +303,8 @@ class Network:
         """
         # If we know the final reward is 1, then the action yields a rewards as well
         if end_reward == 1:
-            check_future = agent.action(next_state.reshape(self.input_shape), self.network)
+            check_future = self.network.predict(next_state.reshape(self.input_shape))
+            # check_future = agent.action(next_state.reshape(self.input_shape), self.network)
             target = reward + self.gamma*np.argmax(check_future)
 
         # If there is no reward in the end, then the current reward is 0
@@ -408,7 +409,7 @@ class Network:
         """
         # Saves the model if the model is deemed good enough
         if round(self.solved, 2) == 1 and self.pretraining is False:
-
+            self.difficulty_counter += 1
             rewards = self.test(agent, cube)
 
             accuracy = sum(rewards)/len(rewards)
@@ -429,6 +430,8 @@ class Network:
                 self.simulations_this_scrambles = 0
                 self.epsilon_decay_steps = 0
                 self.solved = 0
+                self.difficulty_counter = 0
+
 
                 self.difficulty_level += 1
                 if config['simulation'].getboolean('test') is not True:
@@ -437,7 +440,7 @@ class Network:
 
             else:
                 self.solved = 0
-                print(f'\033[91m'
+                print(f'\033[92m'
                       f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training'
                       f'\033[0m')
 
@@ -483,17 +486,17 @@ class Network:
                 # Reshaping the state
                 state = state.reshape(self.input_shape)
 
-                # Get an action from agent and execute it
-                actions = agent.action(state, self.network)
+                # Predict best action
+                actions = self.network.predict(state)
 
                 # Choose predicted action or explore.
                 take_action = np.argmax(actions)
 
                 # Execute action
-                next_state, face = cube.rotate_cube(take_action, render_image=False)
+                cube.rotate_cube(take_action, render_image=False)
 
                 # Calculate reward and find the next state
-                reward = agent.reward(next_state)
+                reward = cube.reward()
 
                 # Is the cube solved?
                 if reward == 1:
