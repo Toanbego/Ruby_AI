@@ -64,7 +64,7 @@ class Network:
         self.solved = 0                             # Calculates the current accuracy
         self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
         self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
-        self.memory = deque(maxlen=124)            # Length of memory
+        self.memory = deque(maxlen=self.batch_size)            # Length of memory
         self.difficulty_level = 1                   # The amount of scrambles
         self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
         self.difficulty_counter = 0                 # Current amount of scrambles
@@ -73,6 +73,7 @@ class Network:
         self.plot_progress = config['simulation'].getboolean('show_plot')  # Plots the progress
         self.check_level = 1
         self.difficulty_test = config['simulation'].getint('difficulty_level_test')
+        self.number_of_moves_eval = []
 
         # Initialize network
         # Load a model if in test mode or user wants to train from an existing net
@@ -87,7 +88,11 @@ class Network:
 
         # If one hot, change the input shape to match the extra added dimension. Does not work with conv net.
         if self.one_hot:
-            self.input_shape = 1, 144
+            if self.choose_net == 'fcn':
+                self.input_shape = 1, 144
+            elif self.choose_net =='conv':
+                self.input_shape = 1, 6, 2, 12
+
 
     def model_fcn(self):
         """
@@ -102,15 +107,18 @@ class Network:
         model.add(keras.layers.Dense(1024, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
+        model.add(keras.layers.BatchNormalization())
         model.add(keras.layers.Dropout(0.2))
 
         model.add(keras.layers.Dense(512, activation='relu'
                                      ))
+        model.add(keras.layers.BatchNormalization())
         model.add(keras.layers.Dropout(0.2))
-        model.add(keras.layers.Dense(512, activation='relu'
+        model.add(keras.layers.Dense(256, activation='relu'
 
                                      ))
-        model.add(keras.layers.Dropout(0.3))
+        model.add(keras.layers.BatchNormalization())
+        model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
@@ -129,14 +137,16 @@ class Network:
                 """
 
         model = keras.models.Sequential()
-        model.add(keras.layers.Conv2D(16, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+        model.add(keras.layers.Conv2D(256, kernel_size=(2, 2), strides=(3, 3), activation=tf.nn.relu,
                                           batch_size=self.batch_size, padding='same'
                                           ))
-        model.add(keras.layers.Conv2D(64, kernel_size=(2, 2), strides=(2, 2), activation=tf.nn.relu,
+        model.add(keras.layers.Conv2D(128, kernel_size=(2, 2), strides=(3, 3), activation=tf.nn.relu,
                                       padding='same'
                                       ))
 
         model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(64, activation='relu',
+                                     ))
         model.add(keras.layers.Dense(64, activation='relu',
                                      ))
 
@@ -197,6 +207,9 @@ class Network:
 
                     # Scramble the cube as many times as the scramble_limit
                     _, scramble_actions = cube.scramble_cube(self.difficulty_level)
+                    blabla  = cube.reward()
+                    if cube.reward() == self.done:
+                        continue
 
                     # After 1000 simulations, pretraining is turned off
                     if len(self.memory) >= self.batch_size:
@@ -235,16 +248,17 @@ class Network:
                         # Append the result into the dataset
                         memory_temp.appendleft((state.reshape(self.input_shape), actions, reward, next_state))
 
-                        # Go train, if pretraining is finished
-                        for train in range(self.epoch):
-                            if self.pretraining is False:
-                                self.go_to_gym()
+
 
                         # Is the cube solved?
                         if reward == self.done:
-
                             solved_rate.appendleft(1)
                             break
+
+                    # Go train, if pretraining is finished
+                    for train in range(self.epoch):
+                        if self.pretraining is False:
+                            self.go_to_gym()
 
                     # Increase the simulation counter
                     simulation += 1
@@ -299,8 +313,9 @@ class Network:
         """
         # If we know the final reward is 1, then the action yields a rewards as well
         if end_reward == 1:
-            check_future = self.network.predict(next_state.reshape(self.input_shape))
-            target = reward + self.gamma*np.argmax(check_future)
+            # check_future = self.network.predict(next_state.reshape(self.input_shape))
+            # target = reward + self.gamma*np.argmax(check_future)
+            target = 1
 
         # If there is no reward in the end, then the current reward is 0
         else:
@@ -318,7 +333,7 @@ class Network:
         """
         # Sample a batch of data from memory
         mini_batch = random.sample(self.memory, self.batch_size)
-
+        # mini_batch = self.memory
         # Append the state and target from the data
         x_batch, y_batch = [], []
         for state, act, target, next_state in mini_batch:
@@ -405,6 +420,7 @@ class Network:
         # Saves the model if the model is deemed good enough
         if round(self.solved, 2) == 1 and self.pretraining is False:
             self.difficulty_counter += 1
+            self.number_of_moves_eval = []
             rewards = self.test(cube)
 
             accuracy = sum(rewards)/len(rewards)
@@ -416,6 +432,7 @@ class Network:
 
                 print(f"\033[91m"
                       f"Solved {sum(rewards)}/{len(rewards)} with an accuracy of {accuracy}"
+                      f"\nAverage number of moves used: {np.mean(self.number_of_moves_eval)}"
                       f"\nIncreasing the number of scrambles by 1"
                       f"\033[0m"
                       f"\n\033[93m=================================\033[0m")
@@ -433,6 +450,7 @@ class Network:
                     keras.models.save_model(self.network,
                                             f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
 
+            # Return to training if the threshold has not been met
             else:
                 self.solved = 0
                 print(f'\033[92m'
@@ -494,12 +512,14 @@ class Network:
 
                 # Is the cube solved?
                 if reward == 1:
-
+                    self.number_of_moves_eval.append(step + 1)
                     rewards.append(1)
                     break
 
+
             # Increase the simulation counter
             simulation += 1
+
 
             # If the reward is zero here, it means the cube was not solved
             if reward == 0:
