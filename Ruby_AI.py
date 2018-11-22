@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 
 from environment import Cube
-from agent import Solver
 import sys
 
 
@@ -113,6 +112,7 @@ class Network:
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
+
                       optimizer=keras.optimizers.adadelta(),
                       metrics=['accuracy'])
 
@@ -170,10 +170,9 @@ class Network:
         """
         return keras.models.load_model(self.load_model_path)
 
-    def train(self, agent, cube):
+    def train(self, cube):
         """
         Trains the data either according to supervised learning or reinforcement learning
-        :param agent:
         :param cube:
         :return:
         """
@@ -213,7 +212,7 @@ class Network:
                         state = state.reshape(self.input_shape)
 
                         # Take in state and predict the reward for all possible actions
-                        actions = agent.action(state, self.network)
+                        actions = self.network.predict(state)
 
                         # Either choose predicted action or explore depending on current epsilon value
                         if self.pretraining is True or self.get_epsilon(self.epsilon_decay_steps) >= np.random.random():
@@ -226,7 +225,7 @@ class Network:
                         next_state, face = cube.rotate_cube(take_action, render_image=False)
 
                         # Calculate reward and find the next state
-                        reward = agent.reward(next_state)
+                        reward = cube.reward()
 
                         if self.one_hot:
                             next_state = keras.utils.to_categorical(next_state)
@@ -257,13 +256,13 @@ class Network:
                         solved_rate.appendleft(0)
 
                     # Add episode to memory and create target vectors
-                    self.add_to_memory(agent, memory_temp)
+                    self.add_to_memory(memory_temp)
 
                     # Print out the current progress
                     self.check_progress(simulation, solved_rate)
 
                     # Evaluate the network
-                    self.evaluate_network(agent, cube)
+                    self.evaluate_network(cube)
 
                 # Save the current model when exiting
                 except KeyboardInterrupt:
@@ -271,26 +270,24 @@ class Network:
                                            f"models/solves_{self.difficulty_level}_scrambles - {time.time()}.h5")
                     break
 
-    def add_to_memory(self, agent, memory_temp):
+    def add_to_memory(self, memory_temp):
         """
         Adds memory_tempt to memory and corrects the target vector.
-        :param agent:
         :param memory_temp:
         :return:
         """
-        if len(memory_temp) > 1:
-            end_reward = memory_temp[0][2]
-        else:
-            end_reward = memory_temp[0][2]
+        # Get the end reward to set up the target vector
+        end_reward = memory_temp[0][2]
 
         for state, actions, reward, next_state in memory_temp:
             take_action = np.argmax(actions)
+
             # Create the target from the reward and predicted reward
-            target_vector = self.create_target_vector(agent, next_state, reward, actions, take_action, end_reward)
-            # Append to memory
+            target_vector = self.create_target_vector(next_state, reward, actions, take_action, end_reward)
+
             self.memory.appendleft((state, actions, target_vector, next_state))
 
-    def create_target_vector(self, agent, next_state, reward, actions, take_action, end_reward):
+    def create_target_vector(self, next_state, reward, actions, take_action, end_reward):
         """
         Creates the target vector used as label in the training.
         Will also look at future rewards with a discount factor
@@ -300,7 +297,7 @@ class Network:
         """
         # If we know the final reward is 1, then the action yields a rewards as well
         if end_reward == 1:
-            check_future = agent.action(next_state.reshape(self.input_shape), self.network)
+            check_future = self.network.predict(next_state.reshape(self.input_shape))
             target = reward + self.gamma*np.argmax(check_future)
 
         # If there is no reward in the end, then the current reward is 0
@@ -398,7 +395,7 @@ class Network:
             if self.plot_progress is True:
                 self.plot_accuracy(simulation, self.solved, solved_rate)
 
-    def evaluate_network(self, agent, cube):
+    def evaluate_network(self, cube):
         """
         Evaluates how well the network is performing over all
         :return:
@@ -407,6 +404,7 @@ class Network:
         if round(self.solved, 2) >= 0.95 and self.pretraining is False:
 
             rewards = self.test(agent, cube)
+
 
             accuracy = sum(rewards)/len(rewards)
             print('\n')
@@ -426,6 +424,8 @@ class Network:
                 self.simulations_this_scrambles = 0
                 self.epsilon_decay_steps = 0
                 self.solved = 0
+                self.difficulty_counter = 0
+
 
                 self.difficulty_level += 1
                 if config['simulation'].getboolean('test') is not True:
@@ -434,14 +434,13 @@ class Network:
 
             else:
                 self.solved = 0
-                print(f'\033[91m'
+                print(f'\033[92m'
                       f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training'
                       f'\033[0m')
 
-    def test(self, agent, cube, simulations=1000):
+    def test(self, cube, simulations=1000):
         """
         Method for testing a trained model
-        :param agent: The agent
         :param cube: The environment
         :param simulations: Number of simulations
         :return:
@@ -480,17 +479,17 @@ class Network:
                 # Reshaping the state
                 state = state.reshape(self.input_shape)
 
-                # Get an action from agent and execute it
-                actions = agent.action(state, self.network)
+                # Predict best action
+                actions = self.network.predict(state)
 
                 # Choose predicted action or explore.
                 take_action = np.argmax(actions)
 
                 # Execute action
-                next_state, face = cube.rotate_cube(take_action, render_image=False)
+                cube.rotate_cube(take_action, render_image=False)
 
                 # Calculate reward and find the next state
-                reward = agent.reward(next_state)
+                reward = cube.reward()
 
                 # Is the cube solved?
                 if reward == 1:
@@ -522,19 +521,16 @@ def main():
     # Initialize network
     model = Network(rubiks_cube.cube)
 
-    # Set up agent
-    agent = Solver(rubiks_cube)
-
     # Start training
     if model.train_model is True:
-        model.train(agent, rubiks_cube)
+        model.train(rubiks_cube)
 
     # Start testing
     elif model.test_model is True:
         x_axis = []
         y_axis = []
         for i in range(model.difficulty_test):
-            rewards = model.test(agent, rubiks_cube, 1000)
+            rewards = model.test(rubiks_cube, 1000)
             accuracy = sum(rewards) / len(rewards)
             print('\n')
             print(f"\033[94m"

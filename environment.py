@@ -212,6 +212,21 @@ class Cube:
 
         return [self.cube, store_action]
 
+    def reward(self):
+        """
+        Calculates the reward for the cube.
+        1 - Cube is Solved
+        0 - Cube is not solved
+        :param state:
+        :return:
+        """
+        reward_check = [len(np.unique(element)) for element in self.cube]
+
+        if sum(reward_check) == 6:
+            return 1
+        else:
+            return 0
+
     def __repr__(self) -> str:
         """
         Prints a string representing the array cube
