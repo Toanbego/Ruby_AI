@@ -65,7 +65,7 @@ class Network:
         self.solved = 0                             # Calculates the current accuracy
         self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
         self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
-        self.memory = deque(maxlen=124)            # Length of memory
+        self.memory = deque(maxlen=256)            # Length of memory
         self.difficulty_level = 1                   # The amount of scrambles
         self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
         self.difficulty_counter = 0                 # Current amount of scrambles
@@ -100,16 +100,16 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(512, activation='relu',
+        model.add(keras.layers.Dense(1024, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
+        model.add(keras.layers.Dropout(0.1))
+        model.add(keras.layers.Dense(512, activation='relu'
+                                     ))
+        model.add(keras.layers.Dropout(0.1))
         model.add(keras.layers.Dense(256, activation='relu'
                                      ))
-        model.add(keras.layers.Dense(256, activation='relu'
-                                     ))
-        model.add(keras.layers.Dense(256, activation='relu'
-                                     ))
-        model.add(keras.layers.Dropout(0.3))
+        model.add(keras.layers.Dropout(0.1))
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
@@ -201,7 +201,7 @@ class Network:
                     if len(self.memory) >= self.batch_size:
                         self.pretraining = False
 
-                    for step in range(self.difficulty_level):
+                    for step in range(self.difficulty_level*2):
 
                         # Get the state of the cube
                         state = copy.deepcopy(cube.cube)
@@ -404,7 +404,7 @@ class Network:
         :return:
         """
         # Saves the model if the model is deemed good enough
-        if round(self.solved, 2) == 1 and self.pretraining is False:
+        if round(self.solved, 2) >= 0.95 and self.pretraining is False:
 
             rewards = self.test(agent, cube)
 
