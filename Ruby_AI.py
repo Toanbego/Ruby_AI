@@ -64,7 +64,9 @@ class Network:
         self.solved = 0                             # Calculates the current accuracy
         self.epsilon_decay_steps = 0                # Decreases exploration after more steps is incremented
         self.simulations_this_scrambles = 0         # How many simulations has been done for the current difficulty
+
         self.memory = deque(maxlen=self.batch_size)            # Length of memory
+
         self.difficulty_level = 1                   # The amount of scrambles
         self.best_accuracy = 0.0                    # The best accuracy for the current difficulty
         self.difficulty_counter = 0                 # Current amount of scrambles
@@ -107,6 +109,7 @@ class Network:
         model.add(keras.layers.Dense(1024, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
+
         model.add(keras.layers.BatchNormalization())
         model.add(keras.layers.Dropout(0.2))
 
@@ -215,7 +218,7 @@ class Network:
                     if len(self.memory) >= self.batch_size:
                         self.pretraining = False
 
-                    for step in range(self.difficulty_level):
+                    for step in range(self.difficulty_level*2):
 
                         # Get the state of the cube
                         state = copy.deepcopy(cube.cube)
@@ -418,10 +421,12 @@ class Network:
         :return:
         """
         # Saves the model if the model is deemed good enough
+
         if round(self.solved, 2) == 1 and self.pretraining is False:
             self.difficulty_counter += 1
             self.number_of_moves_eval = []
             rewards = self.test(cube)
+
 
             accuracy = sum(rewards)/len(rewards)
             print('\n')

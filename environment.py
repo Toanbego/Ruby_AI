@@ -240,3 +240,4 @@ class Cube:
 
 if __name__ == "__main__":
     cube = Cube()
+    cube.rotate_cube('F', True)
