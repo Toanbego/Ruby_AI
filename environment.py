@@ -6,6 +6,7 @@ import numpy as np
 from color_cube import make_plot
 import configparser
 import random
+import re
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -203,11 +204,11 @@ class Cube:
         for a in action:
             # Make sure the cube don't scramble backwards
             a = self.expand_training(store_action, a)
+
             store_action.append(a)
 
             # Rotate the cube
             self.rotate_cube(a, render_image)
-
         return [self.cube, store_action]
 
     def reward(self):
@@ -234,17 +235,25 @@ class Cube:
         :return:
         """
         if config['environment'].getboolean('expand_training') is True:
-            if store_action != []:
-                while a == store_action[-1] + 6 or a == store_action[-1] - 6:
-                    a = np.random.choice(range(0, 12), size=1)
-                while a == 'L' and store_action[-1] == 'Rr' or a == 'Rr' and store_action[-1] == 'L'\
-                        or a == 'Lr' and store_action[-1] == 'R' or a == 'R' and store_action[-1] == 'Lr' \
-                        or a == 'U' and store_action[-1] == 'Dr' or a == 'Dr' and store_action[-1] == 'U'\
-                        or a == 'D' and store_action[-1] == 'Ur' or a == 'Ur' and store_action[-1] == 'D'\
-                        or a == 'F' and store_action[-1] == 'Br' or a == 'Br' and store_action[-1] == 'F' \
-                        or a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr'\
+            if store_action:
+                while a == 0 and store_action[-1] == 10 or a == 10 and store_action[-1] == 0\
+                        or a == 6 and store_action[-1] == 4 or a == 4 and store_action[-1] == 6 \
+                        or a == 1 and store_action[-1] == 9 or a == 9 and store_action[-1] == 1\
+                        or a == 7 and store_action[-1] == 3 or a == 3 and store_action[-1] == 7\
+                        or a == 2 and store_action[-1] == 11 or a == 11 and store_action[-1] == 2 \
+                        or a == 8 and store_action[-1] == 5 or a == 5 and store_action[-1] == 8 \
                         or a == store_action[-1] + 6 or a == store_action[-1] - 6:
-                    a = np.random.choice(range(0, 12), size=1)
+                    a = np.random.choice(range(0, 12), size=1)[0]
+
+
+                # while a == 'L' and store_action[-1] == 'Rr' or a == 'Rr' and store_action[-1] == 'L'\
+                #         or a == 'Lr' and store_action[-1] == 'R' or a == 'R' and store_action[-1] == 'Lr' \
+                #         or a == 'U' and store_action[-1] == 'Dr' or a == 'Dr' and store_action[-1] == 'U'\
+                #         or a == 'Ur' and store_action[-1] == 'D' or a == 'D' and store_action[-1] == 'Ur'\
+                #         or a == 'F' and store_action[-1] == 'Br' or a == 'Br' and store_action[-1] == 'F' \
+                #         or a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr'\
+                #         or a == store_action[-1] + 6 or a == store_action[-1] - 6:
+                #     a = np.random.choice(range(0, 12), size=1)
                 # while a == 'Lr' and store_action[-1] == 'R' or a == 'R' and store_action[-1] == 'Lr':
                 #     a = np.random.choice(range(0, 12), size=1)
                 # while a == 'U' and store_action[-1] == 'Dr' or a == 'Dr' and store_action[-1] == 'U':

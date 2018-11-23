@@ -109,9 +109,6 @@ class Network:
         model.add(keras.layers.Dense(1024, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
-
-
-
         model.add(keras.layers.Dense(512, activation='relu'
                                      ))
 
@@ -457,6 +454,7 @@ class Network:
                 self.solved = 0
                 print(f'\033[92m'
                       f'Total accuracy is {accuracy}, \nneeded {self.threshold}. Return to training'
+                      f"\nAverage number of moves used: {np.mean(self.number_of_moves_eval)}"
                       f'\033[0m')
 
     def test(self, cube, simulations=1000):
