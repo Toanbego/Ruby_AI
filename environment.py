@@ -35,7 +35,6 @@ class Cube:
         self.num_to_str = {0: 'L', 6: 'Lr', 1: 'U', 7: 'Ur', 2: 'F', 8: 'Fr',
                            3: 'D', 9: 'Dr', 4: 'R', 10: 'Rr', 5: 'B', 11: 'Br'}
 
-
     def rotate_cube(self, face, render_image=False):
         """
         Move the faces of the cube in either clock-wise or counter-clock-wise
@@ -252,7 +251,7 @@ class Cube:
                     a = np.random.choice(range(0, 12), size=1)
                 while a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr':
                     a = np.random.choice(range(0, 12), size=1)
-                return a
+            return a
 
     def __repr__(self) -> str:
         """
