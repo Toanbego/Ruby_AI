@@ -110,18 +110,15 @@ class Network:
                                      batch_size=self.batch_size,
                                      ))
 
-        model.add(keras.layers.BatchNormalization())
-        model.add(keras.layers.Dropout(0.2))
+
 
         model.add(keras.layers.Dense(512, activation='relu'
                                      ))
-        model.add(keras.layers.BatchNormalization())
-        model.add(keras.layers.Dropout(0.2))
-        model.add(keras.layers.Dense(256, activation='relu'
+
+        model.add(keras.layers.Dense(512, activation='relu'
 
                                      ))
-        model.add(keras.layers.BatchNormalization())
-        model.add(keras.layers.Dropout(0.2))
+
         model.add(keras.layers.Dense(12, activation='softmax'))
 
         model.compile(loss=keras.losses.categorical_crossentropy,
@@ -210,7 +207,7 @@ class Network:
 
                     # Scramble the cube as many times as the scramble_limit
                     _, scramble_actions = cube.scramble_cube(self.difficulty_level)
-                    blabla  = cube.reward()
+
                     if cube.reward() == self.done:
                         continue
 
@@ -218,7 +215,7 @@ class Network:
                     if len(self.memory) >= self.batch_size:
                         self.pretraining = False
 
-                    for step in range(self.difficulty_level*2):
+                    for step in range(self.difficulty_level):
 
                         # Get the state of the cube
                         state = copy.deepcopy(cube.cube)
