@@ -186,8 +186,6 @@ class Cube:
                 'R': cube[4], 'B': cube[5]}
         return cube, face
 
-
-
     def scramble_cube(self, k: int, render_image=False):
         """
         Takes in a cube array, and scramble it k times.
@@ -239,18 +237,24 @@ class Cube:
             if store_action != []:
                 while a == store_action[-1] + 6 or a == store_action[-1] - 6:
                     a = np.random.choice(range(0, 12), size=1)
-                while a == 'L' and store_action[-1] == 'Rr' or a == 'Rr' and store_action[-1] == 'L':
+                while a == 'L' and store_action[-1] == 'Rr' or a == 'Rr' and store_action[-1] == 'L'\
+                        or a == 'Lr' and store_action[-1] == 'R' or a == 'R' and store_action[-1] == 'Lr' \
+                        or a == 'U' and store_action[-1] == 'Dr' or a == 'Dr' and store_action[-1] == 'U'\
+                        or a == 'D' and store_action[-1] == 'Ur' or a == 'Ur' and store_action[-1] == 'D'\
+                        or a == 'F' and store_action[-1] == 'Br' or a == 'Br' and store_action[-1] == 'F' \
+                        or a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr'\
+                        or a == store_action[-1] + 6 or a == store_action[-1] - 6:
                     a = np.random.choice(range(0, 12), size=1)
-                while a == 'Lr' and store_action[-1] == 'R' or a == 'R' and store_action[-1] == 'Lr':
-                    a = np.random.choice(range(0, 12), size=1)
-                while a == 'U' and store_action[-1] == 'Dr' or a == 'Dr' and store_action[-1] == 'U':
-                    a = np.random.choice(range(0, 12), size=1)
-                while a == 'D' and store_action[-1] == 'Ur' or a == 'Ur' and store_action[-1] == 'D':
-                    a = np.random.choice(range(0, 12), size=1)
-                while a == 'F' and store_action[-1] == 'Br' or a == 'Br' and store_action[-1] == 'F':
-                    a = np.random.choice(range(0, 12), size=1)
-                while a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr':
-                    a = np.random.choice(range(0, 12), size=1)
+                # while a == 'Lr' and store_action[-1] == 'R' or a == 'R' and store_action[-1] == 'Lr':
+                #     a = np.random.choice(range(0, 12), size=1)
+                # while a == 'U' and store_action[-1] == 'Dr' or a == 'Dr' and store_action[-1] == 'U':
+                #     a = np.random.choice(range(0, 12), size=1)
+                # while a == 'D' and store_action[-1] == 'Ur' or a == 'Ur' and store_action[-1] == 'D':
+                #     a = np.random.choice(range(0, 12), size=1)
+                # while a == 'F' and store_action[-1] == 'Br' or a == 'Br' and store_action[-1] == 'F':
+                #     a = np.random.choice(range(0, 12), size=1)
+                # while a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr':
+                #     a = np.random.choice(range(0, 12), size=1)
             return a
 
     def __repr__(self) -> str:
