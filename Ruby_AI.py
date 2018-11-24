@@ -106,10 +106,10 @@ class Network:
 
         model = keras.models.Sequential()
 
-        model.add(keras.layers.Dense(1024, activation='relu',
+        model.add(keras.layers.Dense(4096, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
-        model.add(keras.layers.Dense(512, activation='relu'
+        model.add(keras.layers.Dense(2048, activation='relu'
                                      ))
 
         model.add(keras.layers.Dense(512, activation='relu'
