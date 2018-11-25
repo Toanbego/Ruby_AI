@@ -28,7 +28,6 @@ class Cube:
         """
 
         self.cube_size = cube_size
-
         self.cube, self.face = self.reset_cube()
         self.action_space = np.array([['L', 'Lr'], ['U', 'Ur'], ['F', 'Fr'],
                                       ['D', 'Dr'], ['R', 'Rr'], ['B', 'Br']])

@@ -134,15 +134,15 @@ class Network:
                 """
 
         model = keras.models.Sequential()
-        model.add(keras.layers.Conv2D(256, kernel_size=(2, 2), strides=(3, 3), activation=tf.nn.relu,
+        model.add(keras.layers.Conv2D(512, kernel_size=(2, 2), strides=(3, 3), activation=tf.nn.relu,
                                           batch_size=self.batch_size, padding='same'
                                           ))
-        model.add(keras.layers.Conv2D(128, kernel_size=(2, 2), strides=(3, 3), activation=tf.nn.relu,
+        model.add(keras.layers.Conv2D(256, kernel_size=(2, 2), strides=(3, 3), activation=tf.nn.relu,
                                       padding='same'
                                       ))
 
         model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(64, activation='relu',
+        model.add(keras.layers.Dense(512, activation='relu',
                                      ))
         model.add(keras.layers.Dense(64, activation='relu',
                                      ))
@@ -244,8 +244,6 @@ class Network:
 
                         # Append the result into the dataset
                         memory_temp.appendleft((state.reshape(self.input_shape), actions, reward, next_state))
-
-
 
                         # Is the cube solved?
                         if reward == self.done:
