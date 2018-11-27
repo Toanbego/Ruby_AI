@@ -264,7 +264,7 @@ class Cube:
                 #     a = np.random.choice(range(0, 12), size=1)
                 # while a == 'Fr' and store_action[-1] == 'B' or a == 'B' and store_action[-1] == 'Fr':
                 #     a = np.random.choice(range(0, 12), size=1)
-            return a
+        return a
 
     def __repr__(self) -> str:
         """
