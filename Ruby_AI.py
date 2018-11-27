@@ -139,9 +139,11 @@ class Network:
         model.add(keras.layers.Dense(4096, activation='relu',
                                      batch_size=self.batch_size,
                                      ))
+
         model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(4096, activation='relu'
                                      ))
+
 
         model.add(keras.layers.Dropout(0.2))
 
@@ -171,6 +173,7 @@ class Network:
                 """
 
         model = keras.models.Sequential()
+
         model.add(keras.layers.Conv2D(256, kernel_size=(11, 11), strides=(4, 4), activation=tf.nn.relu,
                                           batch_size=self.batch_size, padding='same'
                                           ))
@@ -178,11 +181,14 @@ class Network:
                                       padding='same'
                                       ))
         model.add(keras.layers.Conv2D(256, kernel_size=(3, 3), strides=(3, 3), activation=tf.nn.relu,
+
                                       padding='same'
                                       ))
 
         model.add(keras.layers.Flatten())
+
         model.add(keras.layers.Dense(1024, activation='relu',
+
                                      ))
         model.add(keras.layers.Dense(512, activation='relu',
                                      ))
