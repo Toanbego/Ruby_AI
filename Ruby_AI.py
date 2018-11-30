@@ -106,6 +106,7 @@ class Network:
         self.check_level = 1
         self.difficulty_test = config['simulation'].getint('difficulty_level_test')
         self.number_of_moves_eval = []
+        self.render_image = config['environment'].getboolean('render_image')
 
         # Initialize network
         # Load a model if in test mode or user wants to train from an existing net
@@ -128,9 +129,9 @@ class Network:
 
     def model_fcn(self):
         """
-        Creates a neural network that takes in a flatted 6x2x2 array and returns
-        the expected reward for a set of actions.
-        :param input:
+        Creates a Fully Connected neural network
+        Input shape is 1x144
+        Returns the expected reward for a set of actions.
         :return:
         """
 
@@ -143,8 +144,6 @@ class Network:
         model.add(keras.layers.Dropout(0.2))
         model.add(keras.layers.Dense(4096, activation='relu'
                                      ))
-
-
         model.add(keras.layers.Dropout(0.2))
 
         model.add(keras.layers.Dense(2096, activation='relu'
@@ -166,11 +165,11 @@ class Network:
 
     def model_conv(self):
         """
-                Creates a neural network that takes in a flatted 6x2x2 array and returns
-                the expected reward for a set of actions.
-                :param input:
-                :return:
-                """
+        Creates a convolutional neural network.
+        Input shape is 6x2x2x12 array and returns.
+        Returns the expected reward for a set of actions.
+        :return:
+        """
 
         model = keras.models.Sequential()
 
@@ -178,10 +177,6 @@ class Network:
                                           batch_size=self.batch_size, padding='same'
                                           ))
         model.add(keras.layers.Conv2D(128, kernel_size=(5, 5), strides=(3, 3), activation=tf.nn.relu,
-                                      padding='same'
-                                      ))
-        model.add(keras.layers.Conv2D(256, kernel_size=(3, 3), strides=(3, 3), activation=tf.nn.relu,
-
                                       padding='same'
                                       ))
 
@@ -227,7 +222,8 @@ class Network:
 
     def train(self, cube):
         """
-        Trains the data either according to supervised learning or reinforcement learning
+        Trains the data with reinforcement learning.
+        Loops through episodes and stores experience to memory
         :param cube:
         :return:
         """
@@ -349,6 +345,9 @@ class Network:
         """
         Creates the target vector used as label in the training.
         Will also look at future rewards with a discount factor
+        :param end_reward:
+        :param take_action:
+        :param next_state:
         :param reward:
         :param actions:
         :return:
@@ -368,9 +367,7 @@ class Network:
 
     def sample_memory(self):
         """
-        Creates a mini batch from the memory
-        Currently uniform selection is the only option. Should apply
-        prioritized selection as well
+        Creates a mini batch from the memory. Samples uniformly
         :return:
         """
         # Sample a batch of data from memory
@@ -393,7 +390,7 @@ class Network:
         """
         Returns the e - greedy based on how many simulations that has been run for this
         amount of scrambles
-        :param decay_steps: THe number of simulations used for these scrambles.
+        :param decay_steps: The number of simulations used for the current amount of scrambles.
         :return:
         """
         if self.pretraining is False:
@@ -427,7 +424,6 @@ class Network:
         """
         Checks the progress of the training and increases the number of scrambles if it deems
         the network good enough
-        :param difficulty_level:
         :param simulation:
         :param solved_rate:
         :return:
@@ -456,7 +452,7 @@ class Network:
 
     def evaluate_network(self, cube):
         """
-        Evaluates how well the network is performing over all
+        Evaluates how well the network is performing over all.
         :return:
         """
         # Saves the model if the model is deemed good enough
@@ -508,10 +504,6 @@ class Network:
         :param simulations: Number of simulations
         :return:
         """
-        # If we are in test mode, then load weights. If not, we use current network
-        # if self.test_model is True:
-        #     self.network = self.load_network()
-            # self.difficulty_level = self.difficulty_test
 
         # Initiate variables
         rewards = []
@@ -527,7 +519,7 @@ class Network:
 
             # Scramble the cube as many times as the scramble_limit
 
-            _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=False)
+            _, scramble_actions = cube.scramble_cube(self.difficulty_level, render_image=self.render_image)
 
             if cube.reward() == self.done:
                 continue
@@ -565,10 +557,8 @@ class Network:
                     scrambles.append(step)
                     break
 
-
             # Increase the simulation counter
             simulation += 1
-
 
             # If the reward is zero here, it means the cube was not solved
             if reward == 0:
@@ -579,6 +569,34 @@ class Network:
         print(scrambles)
         print(np.mean(scrambles))
         return rewards
+
+
+def run_network_test(model, rubiks_cube):
+    """
+    Runs an evaluation of a previously trained model
+    :param model:
+    :param rubiks_cube:
+    :return:
+    """
+    x_axis = []
+    y_axis = []
+    # model.difficulty_level = 14
+    for i in range(model.difficulty_test):
+        rewards = model.test(rubiks_cube, 1000)
+        accuracy = sum(rewards) / len(rewards)
+        print('\n')
+        print(f"\033[94m"
+              f"Solved {sum(rewards)}/{len(rewards)} with an accuracy of {accuracy}"
+              f"\nDifficulty was {model.difficulty_level} scrambles"
+              f"\033[0m"
+              f"\n\033[93m=================================\033[0m")
+        x_axis.append(i + 1), y_axis.append(accuracy * 100)
+        model.difficulty_level += 1
+    plt.plot(x_axis, y_axis, color='r', marker='o')
+    plt.ylim((0, 110)), plt.xlim(0, model.difficulty_test + 1)
+    plt.xlabel('Number of scrambles'), plt.ylabel('Solve percentage')
+    plt.title('Solve percentage at different scramble lengths')
+    plt.show()
 
 
 def main():
@@ -598,25 +616,7 @@ def main():
 
     # Start testing
     elif model.test_model is True:
-        x_axis = []
-        y_axis = []
-        # model.difficulty_level = 14
-        for i in range(model.difficulty_test):
-            rewards = model.test(rubiks_cube, 1000)
-            accuracy = sum(rewards) / len(rewards)
-            print('\n')
-            print(f"\033[94m"
-                  f"Solved {sum(rewards)}/{len(rewards)} with an accuracy of {accuracy}"
-                  f"\nDifficulty was {model.difficulty_level} scrambles"
-                  f"\033[0m"
-                  f"\n\033[93m=================================\033[0m")
-            x_axis.append(i+1), y_axis.append(accuracy*100)
-            model.difficulty_level += 1
-        plt.plot(x_axis, y_axis, color='r', marker='o')
-        plt.ylim((0, 110)), plt.xlim(0, model.difficulty_test+1)
-        plt.xlabel('Number of scrambles'), plt.ylabel('Solve percentage')
-        plt.title('Solve percentage at different scramble lengths')
-        plt.show()
+        run_network_test(model, rubiks_cube)
 
 
 if __name__ == '__main__':

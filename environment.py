@@ -40,11 +40,10 @@ class Cube:
         Move the faces of the cube in either clock-wise or counter-clock-wise
         Movement is hardcoded to work on 2x2x6 cubes
         :param face: The face to rotate
-        :param dir: The direction. -1 is clockwise, 1 is counter clockwise
         :param render_image: If True, render an image before and after the move
         :return:
         """
-        numeric = config['environment'].getboolean('numeric_representation')
+        numeric = config['environment'].getboolean("numeric_representation")
         cube_temp = self.cube.copy()
         # L = 0, U = 1, F = 2, D = 3, R = 4, B = 5
 
@@ -190,6 +189,7 @@ class Cube:
         """
         Takes in a cube array, and scramble it k times.
         Returns the scrambled cube
+        :param render_image:
         :param k:
         :return:
         """
@@ -215,7 +215,6 @@ class Cube:
         Calculates the reward for the cube.
         1 - Cube is Solved
         0 - Cube is not solved
-        :param state:
         :return:
         """
         reward_check = [len(np.unique(element)) for element in self.cube]
