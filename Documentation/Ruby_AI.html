@@ -8,7 +8,7 @@
 <td valign=bottom>&nbsp;<br>
 <font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>Ruby_AI</strong></big></big></font></td
 ><td align=right valign=bottom
-><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/Users/Andreas/Documents/TEK5040_Project/Ruby_AI.py">/Users/Andreas/Documents/TEK5040_Project/Ruby_AI.py</a></font></td></tr></table>
+><font color="#ffffff" face="helvetica, arial"><a href="..">index</a><br><a href="file:c%3A%5Cusers%5Ctoanb%5Cdocuments%5Cskole_programmering%5Ctek5040%20prosjekt%5Cruby_ai.py">c:\users\toanb\documents\skole_programmering\tek5040 prosjekt\ruby_ai.py</a></font></td></tr></table>
     <p></p>
 <p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
@@ -52,12 +52,42 @@
 <tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
 <td colspan=2><tt>Follow&nbsp;the&nbsp;algorithm&nbsp;State,&nbsp;Action,&nbsp;Reward,&nbsp;State'<br>
 &nbsp;<br>
-Update&nbsp;should&nbsp;happen&nbsp;something&nbsp;like&nbsp;this:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Perform&nbsp;action<br>
-&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Check&nbsp;Reward<br>
-&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Go&nbsp;to&nbsp;new&nbsp;state<br>
-&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;Store&nbsp;all&nbsp;of&nbsp;the&nbsp;above&nbsp;for&nbsp;the&nbsp;state&nbsp;before&nbsp;the&nbsp;action.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;When&nbsp;it&nbsp;is&nbsp;time&nbsp;to&nbsp;train,&nbsp;use&nbsp;this&nbsp;information.<br>
+&nbsp;<br>
+Attributes:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;train_model<br>
+&nbsp;&nbsp;&nbsp;&nbsp;test_model<br>
+&nbsp;&nbsp;&nbsp;&nbsp;input_shape<br>
+&nbsp;&nbsp;&nbsp;&nbsp;choose_net<br>
+&nbsp;&nbsp;&nbsp;&nbsp;eta<br>
+&nbsp;&nbsp;&nbsp;&nbsp;gamma<br>
+&nbsp;&nbsp;&nbsp;&nbsp;decay<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epsilon<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epsilon_min<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epsilon_decay<br>
+&nbsp;&nbsp;&nbsp;&nbsp;batch_size<br>
+&nbsp;&nbsp;&nbsp;&nbsp;pretraining<br>
+&nbsp;&nbsp;&nbsp;&nbsp;epoch<br>
+&nbsp;&nbsp;&nbsp;&nbsp;threshold<br>
+&nbsp;&nbsp;&nbsp;&nbsp;one_hot<br>
+&nbsp;&nbsp;&nbsp;&nbsp;evaluate<br>
+&nbsp;&nbsp;&nbsp;&nbsp;number_of_cubes_to_solve<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>done</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>solved</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>epsilon_decay_steps</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>simulations_this_scrambles</strong><br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>memory</strong><br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>difficulty_level</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>best_accuracy</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>difficulty_counter</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>accuracy_points</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>axis</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>plot_progress</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>check_level</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>difficulty_test</strong><br>
+&nbsp;&nbsp;&nbsp;&nbsp;self.<strong>number_of_moves_eval</strong><br>
+&nbsp;<br>
 &nbsp;<br>
 We&nbsp;also&nbsp;need&nbsp;to&nbsp;see&nbsp;how&nbsp;the&nbsp;autodidactic&nbsp;algorithm&nbsp;works&nbsp;into&nbsp;this,&nbsp;since&nbsp;the&nbsp;number&nbsp;of&nbsp;states<br>
 is&nbsp;about&nbsp;3.6&nbsp;million,&nbsp;it&nbsp;might&nbsp;use&nbsp;a&nbsp;really&nbsp;long&nbsp;time&nbsp;to&nbsp;train&nbsp;on&nbsp;this.<br>&nbsp;</tt></td></tr>
@@ -71,23 +101,25 @@ is&nbsp;about&nbsp;3.6&nbsp;million,&nbsp;it&nbsp;might&nbsp;use&nbsp;a&nbsp;rea
 
 <dl><dt><a name="Network-check_progress"><strong>check_progress</strong></a>(self, simulation, solved_rate)</dt><dd><tt>Checks&nbsp;the&nbsp;progress&nbsp;of&nbsp;the&nbsp;training&nbsp;and&nbsp;increases&nbsp;the&nbsp;number&nbsp;of&nbsp;scrambles&nbsp;if&nbsp;it&nbsp;deems<br>
 the&nbsp;network&nbsp;good&nbsp;enough<br>
-:param&nbsp;difficulty_level:<br>
 :param&nbsp;simulation:<br>
 :param&nbsp;solved_rate:<br>
 :return:</tt></dd></dl>
 
 <dl><dt><a name="Network-create_target_vector"><strong>create_target_vector</strong></a>(self, next_state, reward, actions, take_action, end_reward)</dt><dd><tt>Creates&nbsp;the&nbsp;target&nbsp;vector&nbsp;used&nbsp;as&nbsp;label&nbsp;in&nbsp;the&nbsp;training.<br>
 Will&nbsp;also&nbsp;look&nbsp;at&nbsp;future&nbsp;rewards&nbsp;with&nbsp;a&nbsp;discount&nbsp;factor<br>
+:param&nbsp;end_reward:<br>
+:param&nbsp;take_action:<br>
+:param&nbsp;next_state:<br>
 :param&nbsp;reward:<br>
 :param&nbsp;actions:<br>
 :return:</tt></dd></dl>
 
-<dl><dt><a name="Network-evaluate_network"><strong>evaluate_network</strong></a>(self, cube)</dt><dd><tt>Evaluates&nbsp;how&nbsp;well&nbsp;the&nbsp;network&nbsp;is&nbsp;performing&nbsp;over&nbsp;all<br>
+<dl><dt><a name="Network-evaluate_network"><strong>evaluate_network</strong></a>(self, cube)</dt><dd><tt>Evaluates&nbsp;how&nbsp;well&nbsp;the&nbsp;network&nbsp;is&nbsp;performing&nbsp;over&nbsp;all.<br>
 :return:</tt></dd></dl>
 
 <dl><dt><a name="Network-get_epsilon"><strong>get_epsilon</strong></a>(self, decay_steps)</dt><dd><tt>Returns&nbsp;the&nbsp;e&nbsp;-&nbsp;greedy&nbsp;based&nbsp;on&nbsp;how&nbsp;many&nbsp;simulations&nbsp;that&nbsp;has&nbsp;been&nbsp;run&nbsp;for&nbsp;this<br>
 amount&nbsp;of&nbsp;scrambles<br>
-:param&nbsp;decay_steps:&nbsp;THe&nbsp;number&nbsp;of&nbsp;simulations&nbsp;used&nbsp;for&nbsp;these&nbsp;scrambles.<br>
+:param&nbsp;decay_steps:&nbsp;The&nbsp;number&nbsp;of&nbsp;simulations&nbsp;used&nbsp;for&nbsp;the&nbsp;current&nbsp;amount&nbsp;of&nbsp;scrambles.<br>
 :return:</tt></dd></dl>
 
 <dl><dt><a name="Network-go_to_gym"><strong>go_to_gym</strong></a>(self)</dt><dd><tt>Method&nbsp;that&nbsp;trains&nbsp;the&nbsp;network&nbsp;with&nbsp;batches&nbsp;of&nbsp;data<br>
@@ -96,22 +128,20 @@ amount&nbsp;of&nbsp;scrambles<br>
 <dl><dt><a name="Network-load_network"><strong>load_network</strong></a>(self)</dt><dd><tt>Loads&nbsp;a&nbsp;pretrained&nbsp;network<br>
 :return:</tt></dd></dl>
 
-<dl><dt><a name="Network-model_conv"><strong>model_conv</strong></a>(self)</dt><dd><tt>Creates&nbsp;a&nbsp;neural&nbsp;network&nbsp;that&nbsp;takes&nbsp;in&nbsp;a&nbsp;flatted&nbsp;6x2x2&nbsp;array&nbsp;and&nbsp;returns<br>
-the&nbsp;expected&nbsp;reward&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;actions.<br>
-:param&nbsp;input:<br>
+<dl><dt><a name="Network-model_conv"><strong>model_conv</strong></a>(self)</dt><dd><tt>Creates&nbsp;a&nbsp;convolutional&nbsp;neural&nbsp;network.<br>
+Input&nbsp;shape&nbsp;is&nbsp;6x2x2x12&nbsp;array&nbsp;and&nbsp;returns.<br>
+Returns&nbsp;the&nbsp;expected&nbsp;reward&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;actions.<br>
 :return:</tt></dd></dl>
 
-<dl><dt><a name="Network-model_fcn"><strong>model_fcn</strong></a>(self)</dt><dd><tt>Creates&nbsp;a&nbsp;neural&nbsp;network&nbsp;that&nbsp;takes&nbsp;in&nbsp;a&nbsp;flatted&nbsp;6x2x2&nbsp;array&nbsp;and&nbsp;returns<br>
-the&nbsp;expected&nbsp;reward&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;actions.<br>
-:param&nbsp;input:<br>
+<dl><dt><a name="Network-model_fcn"><strong>model_fcn</strong></a>(self)</dt><dd><tt>Creates&nbsp;a&nbsp;Fully&nbsp;Connected&nbsp;neural&nbsp;network<br>
+Input&nbsp;shape&nbsp;is&nbsp;1x144<br>
+Returns&nbsp;the&nbsp;expected&nbsp;reward&nbsp;for&nbsp;a&nbsp;set&nbsp;of&nbsp;actions.<br>
 :return:</tt></dd></dl>
 
 <dl><dt><a name="Network-plot_accuracy"><strong>plot_accuracy</strong></a>(self, simulation, solved, solved_rate)</dt><dd><tt>Plots&nbsp;the&nbsp;accuracy&nbsp;of&nbsp;the&nbsp;cubes<br>
 :return:</tt></dd></dl>
 
-<dl><dt><a name="Network-sample_memory"><strong>sample_memory</strong></a>(self)</dt><dd><tt>Creates&nbsp;a&nbsp;mini&nbsp;batch&nbsp;from&nbsp;the&nbsp;memory<br>
-Currently&nbsp;uniform&nbsp;selection&nbsp;is&nbsp;the&nbsp;only&nbsp;option.&nbsp;Should&nbsp;apply<br>
-prioritized&nbsp;selection&nbsp;as&nbsp;well<br>
+<dl><dt><a name="Network-sample_memory"><strong>sample_memory</strong></a>(self)</dt><dd><tt>Creates&nbsp;a&nbsp;mini&nbsp;batch&nbsp;from&nbsp;the&nbsp;memory.&nbsp;Samples&nbsp;uniformly<br>
 :return:</tt></dd></dl>
 
 <dl><dt><a name="Network-test"><strong>test</strong></a>(self, cube, simulations=1000)</dt><dd><tt>Method&nbsp;for&nbsp;testing&nbsp;a&nbsp;trained&nbsp;model<br>
@@ -119,7 +149,8 @@ prioritized&nbsp;selection&nbsp;as&nbsp;well<br>
 :param&nbsp;simulations:&nbsp;Number&nbsp;of&nbsp;simulations<br>
 :return:</tt></dd></dl>
 
-<dl><dt><a name="Network-train"><strong>train</strong></a>(self, cube)</dt><dd><tt>Trains&nbsp;the&nbsp;data&nbsp;either&nbsp;according&nbsp;to&nbsp;supervised&nbsp;learning&nbsp;or&nbsp;reinforcement&nbsp;learning<br>
+<dl><dt><a name="Network-train"><strong>train</strong></a>(self, cube)</dt><dd><tt>Trains&nbsp;the&nbsp;data&nbsp;with&nbsp;reinforcement&nbsp;learning.<br>
+Loops&nbsp;through&nbsp;episodes&nbsp;and&nbsp;stores&nbsp;experience&nbsp;to&nbsp;memory<br>
 :param&nbsp;cube:<br>
 :return:</tt></dd></dl>
 
@@ -139,6 +170,10 @@ Data descriptors defined here:<br>
     
 <tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
 <td width="100%"><dl><dt><a name="-main"><strong>main</strong></a>()</dt><dd><tt>Main&nbsp;function&nbsp;of&nbsp;the&nbsp;script<br>
+:return:</tt></dd></dl>
+ <dl><dt><a name="-run_network_test"><strong>run_network_test</strong></a>(model, rubiks_cube)</dt><dd><tt>Runs&nbsp;an&nbsp;evaluation&nbsp;of&nbsp;a&nbsp;previously&nbsp;trained&nbsp;model<br>
+:param&nbsp;model:<br>
+:param&nbsp;rubiks_cube:<br>
 :return:</tt></dd></dl>
 </td></tr></table><p>
 <table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">

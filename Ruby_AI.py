@@ -566,8 +566,7 @@ class Network:
 
             sys.stdout.write('\r\033[35m' + str(simulation)+f'/{simulations} cubes\033[0m')
             sys.stdout.flush()
-        print(scrambles)
-        print(np.mean(scrambles))
+
         return rewards
 
 

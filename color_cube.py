@@ -1,3 +1,7 @@
+"""
+Script that renders an image of the environment cube
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors

@@ -6,7 +6,6 @@ import numpy as np
 from color_cube import make_plot
 import configparser
 import random
-import re
 
 config = configparser.ConfigParser()
 config.read("config.ini")
