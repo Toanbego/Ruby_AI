@@ -158,7 +158,7 @@ class Network:
 
         model.compile(loss=keras.losses.categorical_crossentropy,
 
-                      optimizer=keras.optimizers.adadelta(),
+                      optimizer=keras.optimizers.Adadelta(),
                       metrics=['accuracy'])
 
         return model
@@ -250,8 +250,8 @@ class Network:
                     if cube.reward() == self.done:
                         continue
 
-                    # After 1000 simulations, pretraining is turned off
-                    if simulation >= 500:
+                    # After 1000 simulations, pre-training is turned off
+                    if simulation >= 1000:
                         self.pretraining = False
 
                     for step in range(self.difficulty_level):
